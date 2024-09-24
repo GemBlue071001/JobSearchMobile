@@ -4,11 +4,11 @@ import { useState } from 'react'
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { icons } from '../constants';
 
-const FormField = ({ tittle, value, placeholder, hanldeChangeText, otherStyles, ...props }) => {
+const FormField = ({ title, value, placeholder, hanldeChangeText, otherStyles, keyboardType, ...props }) => {
     const [ShowPassword, setShowPassword] = useState(false)
     return (
         <View className={`${otherStyles} space-y-1 w-full`}>
-            <Text className='text-base text-black-300 font-pmedium'>{tittle}</Text>
+            <Text className='text-base text-black-300 font-pmedium'>{title}</Text>
             <View className='border-2 border-gray-600 w-full h-12 rounded-xl items-center justify-center
             focus:border-secondary flex-row'>
                 <TextInput
@@ -17,9 +17,9 @@ const FormField = ({ tittle, value, placeholder, hanldeChangeText, otherStyles, 
                     placeholder={placeholder}
                     placeholderTextColor="#7b7b8b"
                     onChangeText={hanldeChangeText}
-                    secureTextEntry={tittle === 'Password' && !ShowPassword}
+                    secureTextEntry={keyboardType === 'password' && !ShowPassword}
                 />
-                {tittle === 'Password' && (
+                {keyboardType === 'password' && (
                     <TouchableOpacity onPress={() => setShowPassword(!ShowPassword)}>
                         <Image source={!ShowPassword ? icons.eye : icons.eyeHide} className="h-8 w-8" style={{ tintColor: "4B5563" }} resizeMode='contain' />
                     </TouchableOpacity>

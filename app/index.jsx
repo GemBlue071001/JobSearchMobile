@@ -28,13 +28,13 @@ export default function App() {
                         </View>
                         <View className="flex w-full h-[10%] flex-row justify-evenly items-center">
                             <CustomButton
-                                tittle='Sign up'
+                                title='Sign up'
                                 handlePress={() => router.push('/sign-up')}
                                 textStyles='text-white'
                                 containerStyles='w-[50%] h-full'
                             />
                             <CustomButton
-                                tittle='Sign in'
+                                title='Sign in'
                                 handlePress={() => router.push('/sign-in')}
                                 containerStyles='bg-white w-[50%] h-full rounded-tl-3xl'
                                 textStyles='text-cyan-500' />
