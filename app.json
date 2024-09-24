@@ -2,6 +2,7 @@
   "expo": {
     "name": "JobSearchMobile",
     "slug": "JobSearchMobile",
+    "scheme": "JobSearchMobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -24,10 +25,6 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "extra": {
-      "eas": {
-        "projectId": "1626a891-93a1-4d9e-8033-843741f599db"
-      }
-    }
+
   }
 }
