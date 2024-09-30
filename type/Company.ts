@@ -1,15 +1,12 @@
-import { Job } from "./Job";
-
-
-export interface Company {
+interface Company {
     id: number;
     name: string;
     overview: {
-        title: string;
-        description: string;
+      title: string;
+      description: string;
     };
+    jobs: Job[];
     location: string;
     jobOpeningsCount: number;
-    image: string; // URL for the company logo
-    jobs: Job[]; // All jobs related to the company
-}
+    image: string; 
+  }

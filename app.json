@@ -22,7 +22,10 @@
       "package": "com.trinhtam.JobSearchMobile"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "build": {
+        "hermes": false
+      }
     },
     "extra": {
       "eas": {

@@ -4,6 +4,10 @@ import HomeScreen from './screens/HomeScreen';
 import DetailsScreen from './screens/DetailsScreen';
 import MainHeader from './components/common/MainHeader';
 import BottomNav from './components/common/BottomNav';
+import CompanyDetail from './screensModal/CompanyDetail';
+import JobDetail from './screensModal/JobDetail';
+import InfomationCVModal from './screensModal/InfomationCVModal';
+import GerneralInfo from './screensModal/GerneralInfo';
 
 export default function App() {
   const Stack = createStackNavigator();
@@ -14,9 +18,30 @@ export default function App() {
       <Stack.Screen
         name="BottomTabs"
         component={BottomNav}
-        options={{
-          header: () => <MainHeader />,
-        }}
+        // options={{
+        //   header: () => <MainHeader />,
+        // }}
+        options={{headerShown: false}}
+      />
+        <Stack.Screen
+        name="CompanyDetail"
+        component={CompanyDetail}
+        options={{ presentation:'modal'}} 
+      />
+         <Stack.Screen
+        name="JobDetail"
+        component={JobDetail}
+        options={{ presentation:'modal'}} 
+      />
+           <Stack.Screen
+        name="Information"
+        component={InfomationCVModal}
+        options={{ presentation:'modal'}} 
+      />
+             <Stack.Screen
+        name="General Information"
+        component={GerneralInfo}
+        options={{ presentation:'modal'}} 
       />
     </Stack.Navigator>
   </NavigationContainer>

@@ -1,4 +1,4 @@
-export interface Job {
+interface Job {
     id: number;
     title: string;
     location: string;
@@ -6,4 +6,7 @@ export interface Job {
     tags: string[];
     postDate: string;
     hotTag: boolean;
-}
+    companyId?: number;
+    companyImage?: string; 
+  }
+  
