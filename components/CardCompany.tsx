@@ -142,7 +142,8 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#6c6c6c",
-    fontSize: 16,
+    fontSize: 10,
+    lineHeight:15,
     fontWeight: "500",
     textAlign: "center",
     flexShrink: 1, // Ensures text inside the button shrinks when necessary
@@ -181,7 +182,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   tagText: {
-    fontSize: 15,
+    fontSize: 13,
     lineHeight: 20,
   },
   icon: {

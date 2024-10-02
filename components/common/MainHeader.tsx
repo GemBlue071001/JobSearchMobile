@@ -1,28 +1,36 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome'; // Import FontAwesome icons
+import Icon from 'react-native-vector-icons/FontAwesome';
 
-export default function MainHeader() {
+export default function MainHeader({ navigation }: { navigation: any }) {
   const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = () => {
+    if (searchQuery.trim() !== '') {
+      // Navigate to the search results page with the search query as a parameter
+      navigation.navigate('SearchResults', { query: searchQuery });
+    } else {
+      alert('Please enter a search query');
+    }
+  };
 
   return (
     <View>
-    <View style={styles.container}>
-      {/* Top bar with menu and bell icons */}
-      <View style={styles.topBar}>
-        <TouchableOpacity>
-          <Icon name="bars" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.text}>Amazing Jobs</Text>
-        <TouchableOpacity>
-          <Icon name="bell" size={24} color="#fff" />
-        </TouchableOpacity>
+      <View style={styles.container}>
+        {/* Top bar with menu and bell icons */}
+        <View style={styles.topBar}>
+          <TouchableOpacity style={styles.iconButton}>
+            <Icon name="bars" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.text}>Amazing Jobs</Text>
+          <TouchableOpacity style={styles.iconButton}>
+            <Icon name="bell" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Search bar */}
-
-    </View>
-    <View style={styles.searchContainer}>
+      <View style={styles.searchContainer}>
         <View style={styles.search}>
           <Icon name="search" size={16} color="black" style={styles.searchIcon} />
           <TextInput
@@ -30,11 +38,14 @@ export default function MainHeader() {
             placeholder="Type keyword to search."
             value={searchQuery}
             onChangeText={setSearchQuery}
+            onSubmitEditing={handleSearch} // Call handleSearch when the user submits the search
           />
+          <TouchableOpacity onPress={handleSearch}>
+            <Icon name="arrow-right" size={20} color="black" />
+          </TouchableOpacity>
         </View>
       </View>
     </View>
-
   );
 }
 
@@ -44,7 +55,7 @@ const styles = StyleSheet.create({
     paddingVertical: 30,
     paddingHorizontal: 10,
     elevation: 4,
-    height:100
+    height: 100,
   },
   text: {
     color: 'white',
@@ -56,8 +67,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  iconButton: {
+    padding: 10, // Increases the touch area
+  },
   searchContainer: {
-    marginTop: -20, 
+    marginTop: -15, // Reduced margin for better alignment
     paddingHorizontal: 10,
   },
   search: {
@@ -68,14 +82,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ccc',
     paddingHorizontal: 10,
+    height: 40,
   },
   searchIcon: {
-    marginRight: 10
-  
+    marginRight: 10,
   },
   searchInput: {
-    flex: 1, 
-    height: 40,
+    flex: 1,
     fontSize: 16,
     paddingVertical: 10,
     backgroundColor: '#fff',
