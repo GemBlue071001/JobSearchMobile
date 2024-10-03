@@ -11,10 +11,16 @@ import GerneralInfo from "./screensModal/GerneralInfo";
 import Experience from "./screensModal/Experience";
 import Skills from "./screensModal/Skills";
 import Education from "./screensModal/Education";
+import FormSearch from "./screensModal/FormSearch";
+import SeacrHeader from "./components/common/SeacrHeader";
+import SearchResults from "./screensModal/SearchResults";
+import SearchHeader from "./components/common/SearchHeaderr";
+import SeacrHeaderr from "./components/common/SearchHeaderr";
+import Notification from "./screensModal/Notification";
+import Apply from "./screensModal/Apply";
 
 export default function App() {
   const Stack = createStackNavigator();
-
   return (
     <NavigationContainer>
       <Stack.Navigator>
@@ -56,10 +62,33 @@ export default function App() {
           component={Skills}
           options={{ presentation: "modal" }}
         />
-         <Stack.Screen
+        <Stack.Screen
           name="Education"
           component={Education}
-          options={{ presentation: "modal"  }}
+          options={{ presentation: "modal" }}
+        />
+        <Stack.Screen
+          name="FormSearch"
+          component={FormSearch}
+          options={{ presentation: "modal", header: () => <SeacrHeader /> }}
+        />
+        <Stack.Screen
+          name="SearchResults"
+          component={SearchResults}
+          options={({ route }) => ({
+            presentation: "modal",
+            header: () => <SeacrHeaderr />,
+          })}
+        />
+        <Stack.Screen
+          name="Notification"
+          component={Notification}
+          options={{ presentation: "modal" }}
+        />
+        <Stack.Screen
+          name="Apply"
+          component={Apply}
+          options={{ presentation: "modal" }}
         />
       </Stack.Navigator>
     </NavigationContainer>

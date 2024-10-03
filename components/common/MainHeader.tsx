@@ -13,6 +13,13 @@ export default function MainHeader({ navigation }: { navigation: any }) {
       alert('Please enter a search query');
     }
   };
+  const NavigateSearch =()=>{
+    navigation.navigate('FormSearch')
+  }
+
+  const handleNavigate =()=>{
+    navigation.navigate('Notification');
+  }
 
   return (
     <View>
@@ -23,7 +30,7 @@ export default function MainHeader({ navigation }: { navigation: any }) {
             <Icon name="bars" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.text}>Amazing Jobs</Text>
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity style={styles.iconButton} onPress={handleNavigate}>
             <Icon name="bell" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -33,13 +40,17 @@ export default function MainHeader({ navigation }: { navigation: any }) {
       <View style={styles.searchContainer}>
         <View style={styles.search}>
           <Icon name="search" size={16} color="black" style={styles.searchIcon} />
+          <TouchableOpacity onPress={NavigateSearch} style={styles.searchInput} >
           <TextInput
-            style={styles.searchInput}
+            // style={styles.searchInput}
             placeholder="Type keyword to search."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            onSubmitEditing={handleSearch} // Call handleSearch when the user submits the search
+            onSubmitEditing={handleSearch}
+            editable={false}
+             // Call handleSearch when the user submits the search
           />
+          </TouchableOpacity>
           <TouchableOpacity onPress={handleSearch}>
             <Icon name="arrow-right" size={20} color="black" />
           </TouchableOpacity>

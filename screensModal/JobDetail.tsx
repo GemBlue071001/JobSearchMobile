@@ -187,6 +187,9 @@ export default function JobDetail({route,navigation}:any) {
     );
   }
 
+  const handleApply =()=>{
+  navigation.navigate("Apply",{job:jobDetail})
+  }
   // Render job details if found
   return (
     <View>
@@ -309,8 +312,8 @@ export default function JobDetail({route,navigation}:any) {
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.applyButton}>
-            <Text style={styles.applyButtonText}>EASY APPLY</Text>
+          <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
+            <Text style={styles.applyButtonText} >EASY APPLY</Text>
           </TouchableOpacity>
         </View>
       </View>
