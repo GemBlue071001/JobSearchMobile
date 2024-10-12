@@ -2,14 +2,62 @@
 import React, { useState } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
+// import Image1 from './../assets/download.png' 
+interface JobType {
+  id: number;
+  name: string;
+  description: string;
+}
+
+interface JobPost {
+  id: number;
+  jobTitle: string;
+  jobDescription: string;
+  salary: number;
+  postingDate: string;
+  expiryDate: string;
+  experienceRequired: number;
+  qualificationRequired: string;
+  benefits: string;
+  imageURL: string;
+  isActive: boolean;
+  companyId: number;
+  companyName: string;
+  websiteCompanyURL: string;
+  jobType: JobType;
+  jobLocationCities: string[];
+  jobLocationAddressDetail: string[];
+  skillSets: string[];
+}
+
+interface BusinessStream {
+  id: number;
+  businessStreamName: string;
+  description: string;
+}
+
+interface Company {
+  id: number;
+  companyName: string;
+  companyDescription: string;
+  websiteURL: string;
+  establishedYear: number;
+  country: string;
+  city: string;
+  address: string;
+  numberOfEmployees: number;
+  businessStream: BusinessStream;
+  jobPosts: JobPost[];
+  imageUrl: string;
+}
 interface props {
-  data: Job;
-  img: string | undefined;
+  data: JobPost;
+  // img: string | undefined;
   company: Company | undefined;
   navigation: any;
 }
 
-export default function CardJobs({ data, img, company, navigation }: props) {
+export default function CardJobs({ data,  company, navigation }: props) {
   const jobDetailHref = `/job/${data.id}`;
   const [follow, setFollow] = useState<boolean>(false);
   return (
@@ -19,12 +67,12 @@ export default function CardJobs({ data, img, company, navigation }: props) {
           <View style={styles.main2}>
             <Image
               source={{
-                uri: company ? company.image : img,
+                uri: company && company.imageUrl
               }}
               style={styles.image}
             />
             <Text style={styles.text} numberOfLines={2} ellipsizeMode="tail">
-              {company?.name}
+              {company?.companyName}
             </Text>
           </View>
           <View style={{ paddingLeft: 20, marginLeft: "auto" }}>
@@ -44,14 +92,14 @@ export default function CardJobs({ data, img, company, navigation }: props) {
           onPress={() => navigation.navigate("JobDetail", { id: data?.id })}
         >
           <Text style={styles.text1} numberOfLines={2} ellipsizeMode="tail">
-            {data?.title}
+            {data?.jobTitle}
           </Text>
         </TouchableOpacity>
         {/* </Link> */}
         <View style={styles.main3}>
           <View style={styles.location}>
             <Icon name="location-on" size={15} color="#808080" />
-            <Text style={styles.locationtext}>{data?.location}</Text>
+            <Text style={styles.locationtext}>{data?.jobLocationCities.map((item)=>(item))}</Text>
           </View>
           <View style={styles.tax}>
             <Icon name="attach-money" size={15} color="#808080" />
@@ -59,11 +107,11 @@ export default function CardJobs({ data, img, company, navigation }: props) {
           </View>
           <View style={styles.post}>
             <Icon name="access-time" size={15} color="#808080" />
-            <Text style={styles.posttext}>{data?.postDate}</Text>
+            <Text style={styles.posttext}>{data?.postingDate}</Text>
           </View>
         </View>
         <View style={styles.skillList}>
-          {data?.tags.map((tag, index) => (
+          {data?.skillSets.map((tag, index) => (
             <TouchableOpacity key={data?.id} style={styles.button}>
               <Text style={styles.buttonText}>{tag}</Text>
             </TouchableOpacity>

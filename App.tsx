@@ -18,10 +18,14 @@ import SearchHeader from "./components/common/SearchHeaderr";
 import SeacrHeaderr from "./components/common/SearchHeaderr";
 import Notification from "./screensModal/Notification";
 import Apply from "./screensModal/Apply";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./Services/mainService";
 
 export default function App() {
   const Stack = createStackNavigator();
+
   return (
+    <QueryClientProvider client={queryClient}>
     <NavigationContainer>
       <Stack.Navigator>
         <Stack.Screen
@@ -92,5 +96,6 @@ export default function App() {
         />
       </Stack.Navigator>
     </NavigationContainer>
+    </QueryClientProvider>
   );
 }

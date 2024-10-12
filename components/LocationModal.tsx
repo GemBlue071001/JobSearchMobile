@@ -14,8 +14,8 @@ const LocationModal = ({
   modalVisible,
   setModalVisible,
   navigation,
-  location = "", // Đặt giá trị mặc định nếu location là undefined
-  setLocation = () => {}, // Đặt giá trị mặc định cho setLocation nếu không có
+  location = "", 
+  setLocation = () => {}, 
 }: {
   modalVisible: boolean;
   setModalVisible: (visible: boolean) => void;

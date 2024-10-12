@@ -1,6 +1,7 @@
 // import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
+  Dimensions,
   Image,
   ScrollView,
   StyleSheet,
@@ -11,72 +12,117 @@ import {
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { jobData } from "../mock/JobData";
 import CardJobs from "../components/CardJobs";
-import { companyData } from "../mock/CompanyData";
+import { useQuery } from "@tanstack/react-query";
+import { fetchCompaniesById } from "../Services/CompanyService/GetCompanyById";
+import RenderHTML from "react-native-render-html";
+import { fetchCompanies } from "../Services/CompanyService/GetCompanies";
+import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
+import { GetBusinessStream } from "../Services/BusinessStreamService/GetBusinessStream";
+// import { companyData } from "../mock/CompanyData";
 type InfoLineProps = {
-  icon: string; 
-  text: string; 
+  icon: string;
+  text: string;
 };
-export default function CompanyDetail({route,navigation}:any) {
+export default function CompanyDetail({ route, navigation }: any) {
   const { id, companyDetail } = route.params;
   // const parsedId = Array.isArray(id) ? id[0] : id;
   // const parsedCompanyData = Array.isArray(companyDetail)
   //   ? companyDetail[0]
   //   : companyDetail;
   // const company:Company = parsedCompanyData ? JSON.parse(parsedCompanyData) : null;
+  const { width } = Dimensions.get("window");
+  const { data: CompanyData } = useQuery({
+    queryKey: ["Company-details", id],
+    queryFn: ({ signal }) => fetchCompaniesById({ id: Number(id), signal }),
+    enabled: !!id,
+  });
 
+  const companyDataa = CompanyData?.Companies;
   useEffect(() => {
     // Cập nhật options của màn hình và truyền companyData vào header
     navigation.setOptions({
       // header: () => <MainHeader company={companyData} />
     });
-  }, [navigation, companyData]);
-  const company:Company= JSON.parse(companyDetail);
+  }, [navigation, companyDataa]);
+  // const company:Company= JSON.parse(companyDetail);
   const [selectedTab, setSelectedTab] = useState("about");
-  const joblistinCompany=jobData.filter((item)=> item.companyId === company.id)
+  const { data: JobPosts } = useQuery({
+    queryKey: ["JobPosts"],
+    queryFn: ({ signal }) => GetJobPost({ signal }),
+    staleTime: 5000,
+  });
+  const JobPostsdata = JobPosts?.JobPosts;
+  const joblistinCompany = JobPostsdata?.filter(
+    (item) => item.companyId === companyDataa?.id
+  );
+  const { data: Company } = useQuery({
+    queryKey: ["Companies"],
+    queryFn: ({ signal }) => fetchCompanies({ signal }),
+    staleTime: 5000,
+  });
+  const Companiesdata = Company?.Companies;
+  const { data: BusinessStream } = useQuery({
+    queryKey: ["BusinessStream"],
+    queryFn: ({ signal }) => GetBusinessStream({ signal }),
+    staleTime: 5000,
+  });
+  const BusinessStreamData = BusinessStream?.BusinessStreams;
+  console.log("busines", BusinessStreamData);
 
+  const detail = Companiesdata?.find((item) => item.id === companyDataa?.id);
+
+  const BusinessStreamDatainCompany = BusinessStreamData?.find(
+    (item) => detail?.businessStream?.id === item.id
+  );
   const renderContent = () => {
     if (selectedTab === "about") {
       return (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Introduction</Text>
           <Text style={styles.paragraph}>
-            {company?.overview?.description || "Description not available"}
+            {companyDataa?.companyDescription ? (
+              <RenderHTML
+                contentWidth={width}
+                source={{ html: companyDataa.companyDescription }}
+              />
+            ) : (
+              "Description not available"
+            )}
           </Text>
         </View>
       );
-    // } else if (selectedTab === "news") {
-    //   return (
-    //     <View style={styles.card}>
-    //       <Text style={styles.cardTitle}>News</Text>
-    //       <Text style={styles.paragraph}>
-    //         Latest news and updates related to the company will appear here.
-    //       </Text>
-    //     </View>
-    //   );
+      // } else if (selectedTab === "news") {
+      //   return (
+      //     <View style={styles.card}>
+      //       <Text style={styles.cardTitle}>News</Text>
+      //       <Text style={styles.paragraph}>
+      //         Latest news and updates related to the company will appear here.
+      //       </Text>
+      //     </View>
+      //   );
     } else if (selectedTab === "opening") {
       return (
         <View style={styles.card}>
-            {joblistinCompany.map((job) => {
-          const companys = companyData.find(
-            (item) => item.id === job.companyId
-          );
-          return (
-            <CardJobs
-              key={job.id}
-              data={job}
-              img={job.companyImage}
-              company={companys}
-              navigation={navigation}
-            />
-          );
-        })}
-      </View>
-      
+          {joblistinCompany?.map((job) => {
+            const companys = Companiesdata?.find(
+              (item) => item.id === job.companyId
+            );
+            return (
+              <CardJobs
+                key={job.id}
+                data={job}
+                // img={job.companyImage}
+                company={companys}
+                navigation={navigation}
+              />
+            );
+          })}
+        </View>
       );
     }
   };
 
-  const InfoLine = ({ icon, text }:InfoLineProps) => (
+  const InfoLine = ({ icon, text }: InfoLineProps) => (
     <View style={styles.line}>
       <Icon name={icon} size={30} color="#808080" />
       <Text style={styles.infoText}>{text}</Text>
@@ -86,25 +132,25 @@ export default function CompanyDetail({route,navigation}:any) {
   return (
     <ScrollView contentContainerStyle={styles.scrollViewContainer}>
       <View style={styles.main}>
-        {company ? (
+        {companyDataa ? (
           <View>
             <Image
-              source={{ uri: company.image }}
+              source={{ uri: companyDataa.imageUrl }}
               style={styles.img}
               resizeMode="cover"
             />
             <View style={styles.main1}>
               <View style={styles.main2}>
                 <Image
-                  source={{ uri: company.image }}
+                  source={{ uri: companyDataa.imageUrl }}
                   style={styles.img1}
                   resizeMode="cover"
                 />
               </View>
-              <Text style={styles.title}>{company.name}</Text>
+              <Text style={styles.title}>{companyDataa.companyName}</Text>
               <View style={styles.skillList}>
-                {company?.jobs?.map((job, jobIndex) =>
-                  job?.tags?.map((tag, tagIndex) => (
+                {companyDataa?.jobPosts.map((job, jobIndex) =>
+                  job?.skillSets?.map((tag, tagIndex) => (
                     <TouchableOpacity
                       key={`${jobIndex}-${tagIndex}`}
                       style={styles.button}
@@ -114,36 +160,71 @@ export default function CompanyDetail({route,navigation}:any) {
                   ))
                 )}
               </View>
-              <View style={{paddingHorizontal:15,width:'100%',marginTop:10}}>
+              <View
+                style={{ paddingHorizontal: 15, width: "100%", marginTop: 10 }}
+              >
                 <TouchableOpacity style={styles.follow}>
-                   <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:10}}>
-                    <Text style={{color:'#FF4500',fontSize:20,lineHeight:30}}>Follow</Text>
-                    <Icon name="notifications-none" size={20} style={{marginTop:2}} color="#FF4500" />
-                   </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 10,
+                    }}
+                  >
+                    <Text
+                      style={{ color: "#FF4500", fontSize: 20, lineHeight: 30 }}
+                    >
+                      Follow
+                    </Text>
+                    <Icon
+                      name="notifications-none"
+                      size={20}
+                      style={{ marginTop: 2 }}
+                      color="#FF4500"
+                    />
+                  </View>
                 </TouchableOpacity>
               </View>
             </View>
 
             <View style={styles.content}>
               <Text style={styles.sectionTitle}>Information</Text>
-              <InfoLine icon="language" text="http" />
-              <InfoLine icon="location-on" text={company.location} />
+              <InfoLine icon="language" text={companyDataa.websiteURL} />
+              <InfoLine
+                icon="location-on"
+                text={`${companyDataa.address}, ${companyDataa.city}`}
+              />
               <View style={styles.line2}>
-                <InfoLine icon="group" text="123" />
-                <InfoLine icon="work" text={`${company?.jobs?.length} jobs`} />
+                <InfoLine
+                  icon="group"
+                  text={companyDataa.numberOfEmployees.toString()}
+                />
+                <InfoLine
+                  icon="work"
+                  text={`${companyDataa?.jobPosts?.length} jobs`}
+                />
               </View>
               <View style={styles.tagList}>
                 <Icon name="star" size={30} color="#808080" />
                 <View style={styles.tagContainer}>
-                  {company?.jobs?.map((item, jobIndex) => (
+                  {companyDataa?.jobPosts?.map((item, jobIndex) => (
                     <>
-                      {item?.tags?.map((tag, tagIndex) => (
+                      {item?.skillSets?.map((tag, tagIndex) => (
                         <Text style={styles.tagText} key={tagIndex}>
                           {tag},
                         </Text>
                       ))}
                     </>
                   ))}
+                </View>
+              </View>
+              <View style={styles.tagList}>
+                <Icon name="folder" size={30} color="#808080" />
+                <View style={styles.tagContainer}>
+                  <Text style={styles.tagText} >
+                  {BusinessStreamDatainCompany?.businessStreamName}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -198,7 +279,7 @@ export default function CompanyDetail({route,navigation}:any) {
                 </Text>
                 <View style={styles.notificationBadge}>
                   <Text style={styles.notificationText}>
-                    {company?.jobs?.length || 0}
+                    {companyDataa?.jobPosts?.length || 0}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -217,11 +298,13 @@ export default function CompanyDetail({route,navigation}:any) {
 const styles = StyleSheet.create({
   scrollViewContainer: {
     paddingBottom: 20,
+    backgroundColor: '#f0f0f0',
   },
   main: {
     flexDirection: "column",
     width: "100%",
     position: "relative",
+    backgroundColor: 'white',
   },
   img: {
     width: "100%",
@@ -234,6 +317,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     paddingBottom: 20,
     elevation: 5,
+
   },
   main2: {
     position: "relative",
@@ -296,6 +380,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     marginTop: 20,
     backgroundColor: "white",
+    elevation: 5,
   },
   tab: {
     padding: 10,
@@ -362,11 +447,11 @@ const styles = StyleSheet.create({
   },
   tagContainer: {
     width: "100%",
-    flexDirection:'row',
-    flexWrap:'wrap',
-    alignItems:'center',
-    justifyContent:'flex-start',
-    gap:5,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    gap: 5,
     flexShrink: 1,
   },
   tagText: {
@@ -374,13 +459,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 20,
   },
-  follow:{
-    borderWidth:1,
-    borderColor:"#FF4500",
-    paddingVertical:10,
-    textAlign:'center',
-    alignItems:'center',
-    color:'#FF4500',
-    width:'100%'
-  }
+  follow: {
+    borderWidth: 1,
+    borderColor: "#FF4500",
+    paddingVertical: 10,
+    textAlign: "center",
+    alignItems: "center",
+    color: "#FF4500",
+    width: "100%",
+  },
 });

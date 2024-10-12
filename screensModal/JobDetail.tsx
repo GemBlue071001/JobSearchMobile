@@ -1,17 +1,26 @@
 // import { useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 import { jobData } from "../mock/JobData";
 import { Image } from "react-native";
 
-import { companyData } from "../mock/CompanyData";
+// import { companyData } from "../mock/CompanyData";
 import { TouchableOpacity } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import AuthModal from "../components/AuthModal";
+import { useQuery } from "@tanstack/react-query";
+import { GetJobPostById } from "../Services/JobsPost/GetJobPostById";
+import { fetchCompanies } from "../Services/CompanyService/GetCompanies";
+import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
+import { GetJobActivity } from "../Services/UserJobPostActivity/GetUserJobPostActivity";
+import RenderHTML from "react-native-render-html";
+import { GetBusinessStream } from "../Services/BusinessStreamService/GetBusinessStream";
 // import { Item } from "react-native-paper/lib/typescript/components/Drawer/Drawer";
 // import { Link } from "expo-router";
 type InfoLineProps = {
   icon: string;
-  text: string;
+  text: string | undefined;
 };
 
 const InfoLine = ({ icon, text }: InfoLineProps) => (
@@ -21,46 +30,154 @@ const InfoLine = ({ icon, text }: InfoLineProps) => (
   </View>
 );
 
-export default function JobDetail({route,navigation}:any) {
-  const { id } =  route.params;
+export default function JobDetail({ route, navigation }: any) {
+  const { id } = route.params;
   const [follow, setFollow] = useState<boolean>(false);
   const [selectedTab, setSelectedTab] = useState("Job Details");
-
+  const [modalVisibleLogin, setModalVisibleLogin] = useState<boolean>(false);
+  const { width } = Dimensions.get("window");
+  const formatDate = (isoString: string) => {
+    const date = new Date(isoString);
+    return date.toISOString().split("T")[0]; // Chỉ lấy phần ngày (YYYY-MM-DD)
+  };
   // Parse the id as a number for comparison with numeric job ids
-  const parsedId = id && Array.isArray(id) ? Number(id[0]) : Number(id);
+  const { data: jobData } = useQuery({
+    queryKey: ["Job-details", id],
+    queryFn: ({ signal }) => GetJobPostById({ id: Number(id), signal }), // Convert JobId to number
+    enabled: !!id, // Chỉ chạy query khi JobId có giá trị
+  });
 
-  // Find the job details by id
-  const jobDetail = parsedId
-    ? jobData.find((item) => item.id === parsedId)
-    : null;
+  const {
+    data: Company,
+    // isLoading: isCompanyLoading,
+    // isError: isCompanyError,
+  } = useQuery({
+    queryKey: ["Company"],
+    queryFn: ({ signal }) => fetchCompanies({ signal: signal }),
+    staleTime: 5000,
+  });
+  const {
+    data: JobPosts,
+    // isLoading: isJobLoading,
+    // isError: isJobError,
+  } = useQuery({
+    queryKey: ["JobPosts"],
+    queryFn: ({ signal }) => GetJobPost({ signal: signal }),
+    staleTime: 5000,
+  });
+  const {
+    data: JobPostActivity,
+    // isLoading: isJobLoading,
+    // isError: isJobError,
+  } = useQuery({
+    queryKey: ["JobPostActivity"],
+    queryFn: ({ signal }) => GetJobActivity({ signal: signal }),
+    staleTime: 5000,
+  });
 
-  const companyDetail = companyData.find(
-    (item) => item.id === jobDetail?.companyId
+  const { data: BusinessStream } = useQuery({
+    queryKey: ["BusinessStream"],
+    queryFn: ({ signal }) => GetBusinessStream({ signal }),
+    staleTime: 5000,
+  });
+  const BusinessStreamData = BusinessStream?.BusinessStreams;
+
+  const JobPostActivitydata = JobPostActivity?.UserJobActivitys;
+  const Companiesdata = Company?.Companies;
+
+  const job = jobData?.JobPosts;
+  const JobPostsdata = JobPosts?.JobPosts;
+  const detailsCompany = Companiesdata?.find(
+    (item) => item.id === job?.companyId
+  );
+  const hasAppliedJobActivity = JobPostActivitydata?.find(
+    (activity) => activity.jobPostId === job?.id
   );
 
+  const BusinessStreamDatainCompany = BusinessStreamData?.find(
+    (item) => detailsCompany?.businessStream?.id === item.id
+  );
   const renderContent = () => {
     if (selectedTab === "Job Details") {
       return (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Infomation</Text>
           <View style={{ marginBottom: 10 }}>
-            <View style={styles.location}>
-              <Icon name="location-on" size={20} color="#808080" />
-              <Text style={styles.locationtext}>{jobDetail?.location}</Text>
-            </View>
+            {job?.jobLocationAddressDetail.length &&
+            job.jobLocationAddressDetail.length > 0 ? (
+              job.jobLocationAddressDetail.map((item, index) => (
+                <View style={styles.location} key={index}>
+                  <Icon name="location-on" size={20} color="#808080" />
+                  <Text style={styles.locationtext}>{item}</Text>
+                </View>
+              ))
+            ) : (
+              <View style={styles.location}>
+                <Icon name="location-on" size={20} color="#808080" />
+                <Text style={styles.locationtext}>no Location Yet</Text>
+              </View>
+            )}
+
             <View style={styles.tax}>
               <Icon name="attach-money" size={20} color="#808080" />
-              <Text style={styles.taxtext}>{jobDetail?.salary}</Text>
+              <Text style={styles.taxtext}>{job?.salary}</Text>
             </View>
+
             <View style={styles.tax}>
               <Icon name="work" size={20} color="#808080" />
-              <Text style={styles.locationtext}>3 years, 5 years</Text>
+              <Text style={styles.locationtext}>
+                {job?.experienceRequired} Years
+              </Text>
+            </View>
+            <View style={styles.location}>
+              <Icon name="insert-drive-file" size={20} color="#808080" />
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "flex-start",
+                  gap: 5,
+                }}
+              >
+                {job?.skillSets.map((item) => (
+                  <Text> {item}</Text>
+                ))}
+              </View>
             </View>
           </View>
 
           <Text style={styles.cardTitle}>Job Description</Text>
           <Text style={styles.paragraph}>
-            {companyDetail?.overview.description || "Description not available"}
+            {job?.jobDescription ? (
+              <RenderHTML
+                contentWidth={width}
+                source={{ html: job.jobDescription }}
+              />
+            ) : (
+              "Description not available"
+            )}
+          </Text>
+          <Text style={styles.cardTitle}>Job Benefit</Text>
+          <Text style={styles.paragraph}>
+            {job?.benefits ? (
+              <RenderHTML
+                contentWidth={width}
+                source={{ html: job.benefits }}
+              />
+            ) : (
+              "Description not available"
+            )}
+          </Text>
+          <Text style={styles.cardTitle}>Job Required</Text>
+          <Text style={styles.paragraph}>
+            {job?.qualificationRequired ? (
+              <RenderHTML
+                contentWidth={width}
+                source={{ html: job.qualificationRequired }}
+              />
+            ) : (
+              "Description not available"
+            )}
           </Text>
         </View>
       );
@@ -79,7 +196,7 @@ export default function JobDetail({route,navigation}:any) {
           <Text style={styles.cardTitle}>Infomation</Text>
           <View style={styles.company}>
             <Image
-              source={{ uri: companyDetail?.image }}
+              source={{ uri: detailsCompany?.imageUrl }}
               style={{ width: 40, height: 40 }}
               resizeMode="cover"
             />
@@ -91,24 +208,35 @@ export default function JobDetail({route,navigation}:any) {
                 gap: 2,
               }}
             >
-              <Text style={styles.companyTitle}>{companyDetail?.name}</Text>
-              <Text style={styles.locationtext}>3 years, 5 years</Text>
+              <Text style={styles.companyTitle}>
+                {detailsCompany?.companyName}
+              </Text>
+              <Text style={styles.locationtext}>
+                {detailsCompany?.establishedYear}
+              </Text>
             </View>
           </View>
           <View style={styles.location}>
             <Icon name="location-on" size={20} color="#808080" />
-            <Text style={styles.locationtext}>{companyDetail?.location}</Text>
+            <Text style={styles.locationtext}>
+              {detailsCompany?.address} {detailsCompany?.city}
+            </Text>
           </View>
           <View style={styles.line2}>
-            <InfoLine icon="group" text="123" />
+            <InfoLine
+              icon="group"
+              text={
+                detailsCompany && detailsCompany?.numberOfEmployees?.toString()
+              }
+            />
             <InfoLine
               icon="work"
-              text={`${companyDetail?.jobs?.length} jobs`}
+              text={`${detailsCompany?.jobPosts?.length} jobs`}
             />
           </View>
 
           <View style={styles.location}>
-            <Icon name="location-on" size={20} color="#808080" />
+            <Icon name="insert-drive-file" size={20} color="#808080" />
             <View
               style={{
                 flexDirection: "row",
@@ -117,9 +245,22 @@ export default function JobDetail({route,navigation}:any) {
                 gap: 5,
               }}
             >
-              {jobDetail?.tags.map((item) => (
+              {job?.skillSets.map((item) => (
                 <Text> {item}</Text>
               ))}
+            </View>
+          </View>
+          <View style={styles.location}>
+            <Icon name="folder" size={20} color="#808080" />
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "flex-start",
+                gap: 5,
+              }}
+            >
+              <Text> {BusinessStreamDatainCompany?.businessStreamName}</Text>
             </View>
           </View>
 
@@ -161,25 +302,37 @@ export default function JobDetail({route,navigation}:any) {
               }}
               asChild
             > */}
-               <TouchableOpacity onPress={() => navigation.navigate("CompanyDetail", { id: companyDetail?.id, companyDetail: JSON.stringify(companyDetail) })}>
-                <Text
-                  style={{ fontSize: 20, lineHeight: 30, color: "#808080" }}
-                >
-                  View Details
-                </Text>
-              </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate("CompanyDetail", {
+                  id: detailsCompany?.id,
+                  companyDetail: JSON.stringify(detailsCompany),
+                })
+              }
+            >
+              <Text style={{ fontSize: 20, lineHeight: 30, color: "#808080" }}>
+                View Details
+              </Text>
+            </TouchableOpacity>
             {/* </Link> */}
           </View>
           <Text style={styles.cardTitle}>Introduce</Text>
           <Text style={styles.paragraph}>
-            {companyDetail?.overview.description || "Description not available"}
+            {detailsCompany?.companyDescription ? (
+              <RenderHTML
+                contentWidth={width}
+                source={{ html: detailsCompany.companyDescription }}
+              />
+            ) : (
+              "Description not available"
+            )}
           </Text>
         </View>
       );
     }
   };
   // Handle the case where jobDetail is not found
-  if (!jobDetail) {
+  if (!job) {
     return (
       <View>
         <Text>Job not found</Text>
@@ -187,9 +340,13 @@ export default function JobDetail({route,navigation}:any) {
     );
   }
 
-  const handleApply =()=>{
-  navigation.navigate("Apply",{job:jobDetail})
-  }
+  const handleApply = async () => {
+    const Auth = await AsyncStorage.getItem("Auth");
+    if (!Auth) {
+      setModalVisibleLogin(true);
+    }
+    navigation.navigate("Apply", { job: job, id: job.id });
+  };
   // Render job details if found
   return (
     <View>
@@ -197,13 +354,13 @@ export default function JobDetail({route,navigation}:any) {
         <View style={styles.main}>
           <View style={styles.main1}>
             <Image
-              source={{ uri: jobDetail.companyImage }}
+              source={{ uri: job.imageURL }}
               resizeMode="cover"
               style={styles.main3}
             />
             <View style={styles.main4}>
               <Image
-                source={{ uri: jobDetail.companyImage }}
+                source={{ uri: job.imageURL }}
                 resizeMode="cover"
                 style={styles.img1}
               />
@@ -211,10 +368,10 @@ export default function JobDetail({route,navigation}:any) {
           </View>
           <View style={styles.main5}>
             <View style={styles.main6}>
-              <Text style={styles.title}>{jobDetail.title}</Text>
-              <Text style={styles.text}>{companyDetail?.name}</Text>
+              <Text style={styles.title}>{job.jobTitle}</Text>
+              <Text style={styles.text}>{detailsCompany?.companyName}</Text>
               <View style={styles.skillList}>
-                {jobDetail?.tags?.map((job, jobIndex) => (
+                {job?.skillSets?.map((job, jobIndex) => (
                   <TouchableOpacity key={`${jobIndex}`} style={styles.button}>
                     <Text style={styles.buttonText}>{job}</Text>
                   </TouchableOpacity>
@@ -222,7 +379,12 @@ export default function JobDetail({route,navigation}:any) {
               </View>
               <View style={styles.post}>
                 <Icon name="access-time" size={15} color="#808080" />
-                <Text style={styles.posttext}>{jobDetail?.postDate}</Text>
+                <Text style={styles.posttext}>
+                  {" "}
+                  {job?.postingDate
+                    ? formatDate(job.postingDate)
+                    : "No Date Available"}
+                </Text>
               </View>
             </View>
             <View style={styles.tabContainer}>
@@ -312,9 +474,23 @@ export default function JobDetail({route,navigation}:any) {
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
-            <Text style={styles.applyButtonText} >EASY APPLY</Text>
-          </TouchableOpacity>
+          {hasAppliedJobActivity ? (
+            <TouchableOpacity style={styles.applyButtonApplied} onPress={handleApply}>
+              <AuthModal
+                visible={modalVisibleLogin}
+                onClose={() => setModalVisibleLogin(false)}
+              />
+              <Text style={styles.applyButtonText}>{hasAppliedJobActivity.status}</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
+              <AuthModal
+                visible={modalVisibleLogin}
+                onClose={() => setModalVisibleLogin(false)}
+              />
+              <Text style={styles.applyButtonText}>EASY APPLY</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </View>
@@ -450,7 +626,7 @@ const styles = StyleSheet.create({
     // marginBottom: 5,
     marginTop: 20,
     backgroundColor: "white",
-    width:'100%'
+    width: "100%",
   },
   tab: {
     padding: 10,
@@ -483,6 +659,7 @@ const styles = StyleSheet.create({
   },
   scrollViewContainer: {
     paddingBottom: 20,
+    height: "auto",
   },
   location: {
     flexDirection: "row",
@@ -561,6 +738,14 @@ const styles = StyleSheet.create({
   applyButton: {
     flex: 1,
     backgroundColor: "#FF5A5F",
+    borderRadius: 8,
+    paddingVertical: 15,
+    alignItems: "center",
+    marginLeft: 8,
+  },
+  applyButtonApplied: {
+    flex: 1,
+    backgroundColor: "#DEDEDE",
     borderRadius: 8,
     paddingVertical: 15,
     alignItems: "center",

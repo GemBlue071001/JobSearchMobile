@@ -1,52 +1,124 @@
 import React, { useState } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Dimensions,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 // import { Link, useNavigation } from "expo-router"; // Sử dụng Expo Router để điều hướng
 import Icon from "react-native-vector-icons/MaterialIcons";
-import { companyData } from "../mock/CompanyData";
+// import { companyData } from "../mock/CompanyData";
 import { jobData } from "../mock/JobData";
 import { Link } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
 import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import RenderHtml from "react-native-render-html";
+import { useQuery } from "@tanstack/react-query";
+import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
+
+interface BusinessStream {
+  id: number;
+  businessStreamName: string;
+  description: string;
+}
+interface JobType {
+  id: number;
+  name: string;
+  description: string;
+}
+
+interface JobPost {
+  id: number;
+  jobTitle: string;
+  jobDescription: string;
+  salary: number;
+  postingDate: string;
+  expiryDate: string;
+  experienceRequired: number;
+  qualificationRequired: string;
+  benefits: string;
+  imageURL: string;
+  isActive: boolean;
+  companyId: number;
+  companyName: string;
+  websiteCompanyURL: string;
+  jobType: JobType; // jobType là đối tượng JobType
+  jobLocationCities: string[];
+  jobLocationAddressDetail: string[];
+  skillSets: string[]; // Array of skill sets, có thể là array rỗng
+}
+interface Company {
+  id: number;
+  companyName: string;
+  companyDescription: string;
+  websiteURL: string;
+  establishedYear: number;
+  country: string;
+  city: string;
+  address: string;
+  numberOfEmployees: number;
+  businessStream: BusinessStream;
+  jobPosts: JobPost[];
+  imageUrl: string;
+}
 
 interface CardEmployerProps {
   data: Company;
-  navigation:any
+  navigation: any;
 }
 
-export default function CompanyCard({ data ,navigation}: CardEmployerProps) {
+export default function CompanyCard({ data, navigation }: CardEmployerProps) {
   const [follow, setFollow] = useState<boolean>(false);
-//   const navigation = useNavigation();
+  const { width } = Dimensions.get("window");
+  //   const navigation = useNavigation();
   // const navigate =useNavigation()
 
   // const handleNavigate =()=>{
   //   navigate('/modal',stat)
   // }
   // Kiểm tra dữ liệu đầu vào, trả về null nếu dữ liệu thiếu
-  if (!data || !data.image || !data.name || !data.overview || !data.jobs) {
+  if (
+    !data ||
+    !data.imageUrl ||
+    !data.companyName ||
+    !data.companyDescription ||
+    !data.jobPosts
+  ) {
     return null; // Không hiển thị nếu dữ liệu không đầy đủ
   }
+
+  const {
+    data: JobPosts,
+    // isLoading: isJobLoading,
+    // isError: isJobError,
+  } = useQuery({
+    queryKey: ["JobPosts"],
+    queryFn: ({ signal }) => GetJobPost({ signal: signal }),
+    staleTime: 5000,
+  });
+  const JobPostsdata = JobPosts?.JobPosts;
 
   return (
     <View style={styles.main}>
       {/* Điều hướng sử dụng Link từ expo-router */}
- 
-        <View>
-          <Image
-            source={{
-              uri: data.image,
-            }}
-            style={styles.logo}
-         
-          />
-        </View>
 
+      <View>
+        <Image
+          source={{
+            uri: data.imageUrl,
+          }}
+          style={styles.logo}
+        />
+      </View>
 
       <View style={styles.main2}>
         <View style={styles.header}>
           <View style={styles.img}>
             <Image
               source={{
-                uri: data.image,
+                uri: data.imageUrl,
               }}
               style={styles.logo1}
               resizeMode="contain"
@@ -59,23 +131,33 @@ export default function CompanyCard({ data ,navigation}: CardEmployerProps) {
                 params: { id: data?.id, companyDetail: JSON.stringify(data) },
               }}
             > */}
-            <TouchableOpacity onPress={() => navigation.navigate("CompanyDetail", { id: data?.id, companyDetail: JSON.stringify(data) })}>
-       
-                <Text
-                  numberOfLines={2}
-                  ellipsizeMode="tail"
-                  style={styles.textStyle}
-                >
-                  {data.name}
-                </Text>
-              </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate("CompanyDetail", {
+                  id: data?.id,
+                  companyDetail: JSON.stringify(data),
+                })
+              }
+            >
+              <Text
+                numberOfLines={2}
+                ellipsizeMode="tail"
+                style={styles.textStyle}
+              >
+                {data.companyName}
+              </Text>
+            </TouchableOpacity>
             {/* </Link> */}
           </View>
         </View>
 
         {/* Mô tả công ty */}
         <Text style={styles.text} numberOfLines={2} ellipsizeMode="tail">
-          {data.overview.description}
+          <RenderHtml
+            contentWidth={width}
+            source={{ html: data.companyDescription }}
+          />
+          {/* {data.companyDescription} */}
         </Text>
 
         {/* Hiển thị số lượng công việc */}
@@ -87,23 +169,24 @@ export default function CompanyCard({ data ,navigation}: CardEmployerProps) {
             style={{ marginTop: 5 }}
           />
           <Text style={styles.text} numberOfLines={2} ellipsizeMode="tail">
-            {data.jobs.length} Jobs
+            {data.jobPosts.length} Jobs
           </Text>
         </View>
 
         {/* Hiển thị danh sách kỹ năng và nút bookmark */}
         <View style={styles.skill}>
           <View style={styles.skillList}>
-            {data.jobs.map((job, jobIndex) =>
-              job.tags?.map((tag, tagIndex) => (
+            {data.jobPosts.map((job, jobIndex) => {
+              const jobSkill = JobPostsdata?.find((item) => item.id === job.id);
+              return jobSkill?.skillSets?.map((tag, tagIndex) => (
                 <TouchableOpacity
                   key={`${jobIndex}-${tagIndex}`}
                   style={styles.button}
                 >
                   <Text style={styles.buttonText}>{tag}</Text>
                 </TouchableOpacity>
-              ))
-            )}
+              ));
+            })}
           </View>
           <View>
             {/* Nút follow/unfollow */}
@@ -128,6 +211,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#dedede",
     width: "100%", // Đặt width 100% để tránh việc nội dung tràn ra ngoài
+    backgroundColor:'white'
   },
   logo: {
     height: 200,

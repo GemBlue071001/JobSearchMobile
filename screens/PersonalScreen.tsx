@@ -1,133 +1,165 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
 import ProfileCard from "../components/ProfileCard"; // Import the ProfileCard component
 import FullNameModal from "../components/FullNameModal"; // Import the FullNameModal component
 import CVModal from "../components/CVModal";
 import CardJobs from "../components/CardJobs";
 import { companyData } from "../mock/CompanyData";
 import { jobData } from "../mock/JobData";
+import AuthModal from "../components/AuthModal";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function PersonalScreen({navigation}:any) {
+export default function PersonalScreen({ navigation }: any) {
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [modalVisibleCV, setModalVisibleCV] = useState<boolean>(false);
+  const [modalVisibleLogin, setModalVisibleLogin] = useState<boolean>(false);
   const [fullName, setFullName] = useState<string>("Thúc Minh");
   const [address, setAddress] = useState<string>("");
   const [phoneNumber, setPhoneNumber] = useState<string>("");
   const [selectedTab, setSelectedTab] = useState("Applied");
 
-  const renderContent = () => {
-    if (selectedTab === "Applied") {
-      return (
-        <View style={styles.jobdisplay}>
-        {jobData.map((job) => {
-          const companys = companyData.find(
-            (item) => item.id === job.companyId
-          );
-          return (
-            <CardJobs
-              key={job.id}
-              data={job}
-              img={job.companyImage}
-              company={companys}
-              navigation={navigation}
-            />
-          );
-        })}
-      </View>
-      )
-    } else if (selectedTab === "Saved") {
-      return (
-         <View style={styles.jobdisplay}>
-        {jobData.map((job) => {
-          const companys = companyData.find(
-            (item) => item.id === job.companyId
-          );
-          return (
-            <CardJobs
-              key={job.id}
-              data={job}
-              img={job.companyImage}
-              company={companys}
-              navigation={navigation}
-            />
-          );
-        })}
-      </View>
-      )
-    
-    }
+  // navigation.navigate('B', { from: 'Account' });
+  // const renderContent = () => {
+  //   if (selectedTab === "Applied") {
+  //     return (
+  //       <View style={styles.jobdisplay}>
+  //         {jobData.map((job) => {
+  //           const companys = companyData.find(
+  //             (item) => item.id === job.companyId
+  //           );
+  //           return (
+  //             <CardJobs
+  //               key={job.id}
+  //               data={job}
+  //               img={job.companyImage}
+  //               company={companys}
+  //               navigation={navigation}
+  //             />
+  //           );
+  //         })}
+  //       </View>
+  //     );
+  //   } else if (selectedTab === "Saved") {
+  //     return (
+  //       <View style={styles.jobdisplay}>
+  //         {jobData.map((job) => {
+  //           const companys = companyData.find(
+  //             (item) => item.id === job.companyId
+  //           );
+  //           return (
+  //             <CardJobs
+  //               key={job.id}
+  //               data={job}
+  //               img={job.companyImage}
+  //               company={companys}
+  //               navigation={navigation}
+  //             />
+  //           );
+  //         })}
+  //       </View>
+  //     );
+  //   }
+  // };
+
+  const handleAuth = async () => {
+    // const Auth = await AsyncStorage.getItem("Auth");
+    // if (!Auth) {
+    //   setModalVisibleLogin(true);
+    // } else {
+    //   setModalVisibleCV(true);
+    // }
+    setModalVisibleLogin(true);
+
   };
   return (
     <ScrollView>
-    <View style={styles.main}>
-      <View style={styles.main1}>
-        <Text style={styles.title}>About me</Text>
-        <Text> My personal details</Text>
+      <View style={styles.main}>
+        <View style={styles.main1}>
+          <Text style={styles.title}>About me</Text>
+          <Text> My personal details</Text>
 
-        {/* Profile Card */}
-        <ProfileCard fullName={fullName} setModalVisible={setModalVisible} />
+          {/* Profile Card */}
+          <ProfileCard fullName={fullName} setModalVisible={setModalVisible} />
 
-        {/* Full Name Modal */}
-        <FullNameModal
-          modalVisible={modalVisible}
-          setModalVisible={setModalVisible}
-          fullName={fullName}
-          address={address}
-          setAddress={setAddress}
-          phoneNumber={phoneNumber}
-          setPhoneNumber={setPhoneNumber}
-          setFullName={setFullName}
-        />
-      </View>
+          {/* Full Name Modal */}
+          <FullNameModal
+            modalVisible={modalVisible}
+            setModalVisible={setModalVisible}
+            fullName={fullName}
+            address={address}
+            setAddress={setAddress}
+            phoneNumber={phoneNumber}
+            setPhoneNumber={setPhoneNumber}
+            setFullName={setFullName}
+          />
+        </View>
 
-      <View style={styles.main2}>
-        <Text style={styles.title}>CV/Cover Letter</Text>
-        <Text>Would you like you to have a job that suits you</Text>
-        <TouchableOpacity
-          style={styles.update}
-          onPress={() => setModalVisibleCV(true)}
-        >
-          <Text style={{ fontSize: 20, lineHeight: 30, color: "white" }}>
-            UPLOAD/CREATE NEW CV{" "}
-          </Text>
-        </TouchableOpacity>
-        {/* MOdal cv */}
-        <CVModal
-          modalVisible={modalVisibleCV}
-          setModalVisible={setModalVisibleCV}
-          navigation={navigation}
-        />
-      </View>
+        <View style={styles.main2}>
+          <Text style={styles.title}>CV/Cover Letter</Text>
 
-      <View style={styles.main3}>
-        <View style={styles.tabContainer}>
+          <Text>Would you like you to have a job that suits you</Text>
           <TouchableOpacity
-            style={[styles.tab, selectedTab === "Applied" && styles.activeTab]}
-            onPress={() => setSelectedTab("Applied")}
+            style={styles.update}
+            // onPress={() => setModalVisibleCV(true)}
+            // onPress={() => setModalVisibleLogin(true)}
+            onPress={handleAuth}
           >
-            <Text
-              style={
-                selectedTab === "Applied"
-                  ? styles.activeTabText
-                  : styles.tabText
-              }
-            >
-              Applied
+            <Text style={{ fontSize: 20, lineHeight: 30, color: "white" }}>
+              UPLOAD/CREATE NEW CV{" "}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, selectedTab === "Saved" && styles.activeTab]}
-            onPress={() => setSelectedTab("Saved")}
-          >
-            <Text
-              style={
-                selectedTab === "Saved" ? styles.activeTabText : styles.tabText
-              }
+          {/* MOdal cv */}
+          <CVModal
+            modalVisible={modalVisibleCV}
+            setModalVisible={setModalVisibleCV}
+            navigation={navigation}
+          />
+          <AuthModal
+            visible={modalVisibleLogin}
+            onClose={() => setModalVisibleLogin(false)}
+          />
+        </View>
+
+        <View style={styles.main3}>
+          <View style={styles.tabContainer}>
+            <TouchableOpacity
+              style={[
+                styles.tab,
+                selectedTab === "Applied" && styles.activeTab,
+              ]}
+              onPress={() => setSelectedTab("Applied")}
             >
-              Saved
-            </Text>
-          </TouchableOpacity>
-          {/* <TouchableOpacity
+              <Text
+                style={
+                  selectedTab === "Applied"
+                    ? styles.activeTabText
+                    : styles.tabText
+                }
+              >
+                Applied
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, selectedTab === "Saved" && styles.activeTab]}
+              onPress={() => setSelectedTab("Saved")}
+            >
+              <Text
+                style={
+                  selectedTab === "Saved"
+                    ? styles.activeTabText
+                    : styles.tabText
+                }
+              >
+                Saved
+              </Text>
+            </TouchableOpacity>
+            {/* <TouchableOpacity
                 style={[
                   styles.tab,
                   selectedTab === "opening" && styles.activeTab,
@@ -149,10 +181,10 @@ export default function PersonalScreen({navigation}:any) {
                   </Text>
                 </View>
               </TouchableOpacity> */}
+          </View>
+          {/* {renderContent()} */}
         </View>
-        {renderContent()}
       </View>
-    </View>
     </ScrollView>
   );
 }
