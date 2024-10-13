@@ -36,7 +36,7 @@ interface FileResponse {
   size: number | null;
 }
 
-export default function Apply({ route }: any) {
+export default function Apply({ route,navigation }: any) {
   const { id } = route.params;
 
   const formatDate = (isoString: string) => {
@@ -189,6 +189,7 @@ export default function Apply({ route }: any) {
         refetchType: "active",
       });
       Alert.alert(`CV Apply to ${job?.jobTitle} successfully!`);
+      navigation.navigate('ApplyComplete')
     },
     onError: () => {
       Alert.alert("Failed to Apply CV.");
@@ -320,7 +321,7 @@ export default function Apply({ route }: any) {
                   <RadioButton
                     value={CVApplied?.name ?? ""}
                     status={
-                      selectedCV === CVApplied?.name ? "checked" : "unchecked"
+                      selectedCVId === CVApplied?.id ? "checked" : "unchecked"
                     }
                   />
                 </TouchableOpacity>
@@ -344,7 +345,7 @@ export default function Apply({ route }: any) {
                     </View>
                     <RadioButton
                       value={cv.name ?? ""}
-                      status={selectedCV === cv.name ? "checked" : "unchecked"}
+                      status={selectedCVId === cv.id ? "checked" : "unchecked"}
                       onPress={() => handleSelectCV(cv.id, cv.name)}
                     />
                   </TouchableOpacity>

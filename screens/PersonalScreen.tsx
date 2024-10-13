@@ -5,15 +5,20 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Image,
 } from "react-native";
 import ProfileCard from "../components/ProfileCard"; // Import the ProfileCard component
 import FullNameModal from "../components/FullNameModal"; // Import the FullNameModal component
 import CVModal from "../components/CVModal";
 import CardJobs from "../components/CardJobs";
-import { companyData } from "../mock/CompanyData";
+import Icon from "react-native-vector-icons/MaterialIcons";
 import { jobData } from "../mock/JobData";
 import AuthModal from "../components/AuthModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useQuery } from "@tanstack/react-query";
+import { GetJobActivity } from "../Services/UserJobPostActivity/GetUserJobPostActivity";
+import { fetchCompanies } from "../Services/CompanyService/GetCompanies";
+import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
 
 export default function PersonalScreen({ navigation }: any) {
   const [modalVisible, setModalVisible] = useState<boolean>(false);
@@ -23,60 +28,185 @@ export default function PersonalScreen({ navigation }: any) {
   const [address, setAddress] = useState<string>("");
   const [phoneNumber, setPhoneNumber] = useState<string>("");
   const [selectedTab, setSelectedTab] = useState("Applied");
+  const [follow, setFollow] = useState<boolean>(false);
+  const formatDateTime = (dateString: string | undefined) => {
+    if (dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
 
+    // Return a fallback value if dateString is undefined
+    return "Invalid date";
+  };
   // navigation.navigate('B', { from: 'Account' });
-  // const renderContent = () => {
-  //   if (selectedTab === "Applied") {
-  //     return (
-  //       <View style={styles.jobdisplay}>
-  //         {jobData.map((job) => {
-  //           const companys = companyData.find(
-  //             (item) => item.id === job.companyId
-  //           );
-  //           return (
-  //             <CardJobs
-  //               key={job.id}
-  //               data={job}
-  //               img={job.companyImage}
-  //               company={companys}
-  //               navigation={navigation}
-  //             />
-  //           );
-  //         })}
-  //       </View>
-  //     );
-  //   } else if (selectedTab === "Saved") {
-  //     return (
-  //       <View style={styles.jobdisplay}>
-  //         {jobData.map((job) => {
-  //           const companys = companyData.find(
-  //             (item) => item.id === job.companyId
-  //           );
-  //           return (
-  //             <CardJobs
-  //               key={job.id}
-  //               data={job}
-  //               img={job.companyImage}
-  //               company={companys}
-  //               navigation={navigation}
-  //             />
-  //           );
-  //         })}
-  //       </View>
-  //     );
-  //   }
-  // };
+  const renderContent = () => {
+    if (selectedTab === "Applied") {
+      return (
+        <View style={styles.jobdisplay}>
+          {JobPostActivitydata?.map((activity) => {
+            const PendingJobApplied = JobPostsdata?.find(
+              (job) => job.id === activity.jobPostId
+            );
+            const companys = Companiesdata?.find(
+              (item) => item.id === PendingJobApplied?.companyId
+            );
+            return (
+
+              <TouchableOpacity style={styles.jobCard} key={activity.id}    onPress={() => navigation.navigate("JobDetail", { id: activity?.jobPostId })}>
+                  <View style={styles.maincompany}>
+          <View style={styles.maincom1}>
+            <Image
+              source={{
+                uri: companys && companys.imageUrl
+              }}
+              style={styles.image}
+            />
+            <Text style={styles.text} numberOfLines={2} ellipsizeMode="tail">
+              {companys?.companyName}
+            </Text>
+          </View>
+          <View style={{ paddingLeft: 20, marginLeft: "auto" }}>
+            {/* Nút follow/unfollow */}
+            <TouchableOpacity onPress={() => setFollow(!follow)}>
+              <Icon
+                name={follow ? "bookmark" : "bookmark-border"}
+                size={30}
+                color="#808080"
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+                <Text style={styles.jobTitle}>{activity.jobTitle}</Text>
+                <View style={styles.iconRow}>
+                  <Icon name="place" size={20} color="#777" />
+                  {PendingJobApplied?.jobLocationCities.map(
+                    (location, index) => (
+                      <Text style={styles.jobDetails} key={index}>
+                        {location}
+                        {index !==
+                        PendingJobApplied?.jobLocationCities.length - 1
+                          ? ","
+                          : ""}
+                      </Text>
+                    )
+                  )}
+                </View>
+                <View style={styles.iconRow}>
+                  <Icon name="attach-money" size={20} color="#777" />
+                  <Text style={styles.jobDetails}>
+                    {PendingJobApplied?.salary}
+                  </Text>
+                </View>
+                <View style={styles.iconRow}>
+                  <Icon name="access-time" size={20} color="#777" />
+                  <Text style={styles.jobDetails}>
+                    {formatDateTime(PendingJobApplied?.postingDate)}
+                  </Text>
+                </View>
+
+                <View style={styles.skillContainer}>
+                  {PendingJobApplied?.skillSets.map((skill, index) => (
+                    <TouchableOpacity style={styles.skill} key={index}>
+                      <Text style={styles.skillText}>{skill}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <View
+                  style={{
+                    marginTop: 10,
+                    paddingLeft: 1,
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ color: "#777", fontSize: 12, lineHeight: 15 }}>
+                    Applied on: {formatDateTime(activity.applicationDate)}
+                  </Text>
+
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: "bold",
+                      marginHorizontal: 5,
+                    }}
+                  >
+                    •</Text>
+
+                  <Text style={{ color: "#777", fontSize: 12, lineHeight: 15 }}>
+                    Status: {activity.status}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      );
+    } else if (selectedTab === "Saved") {
+      return (
+        <View style={styles.jobdisplay}>
+          {JobPostsdata?.map((job) => {
+            const companys = Companiesdata?.find(
+              (item) => item.id === job.companyId
+            );
+            return (
+              <CardJobs
+                key={job.id}
+                data={job}
+                // img={job.companyImage}
+                company={companys}
+                navigation={navigation}
+              />
+            );
+          })}
+        </View>
+      );
+    }
+  };
 
   const handleAuth = async () => {
-    // const Auth = await AsyncStorage.getItem("Auth");
-    // if (!Auth) {
-    //   setModalVisibleLogin(true);
-    // } else {
-    //   setModalVisibleCV(true);
-    // }
-    setModalVisibleLogin(true);
-
+    const Auth = await AsyncStorage.getItem("Auth");
+    if (!Auth) {
+      setModalVisibleLogin(true);
+    } else {
+      setModalVisibleCV(true);
+    }
+    // setModalVisibleLogin(true);
   };
+  const {
+    data: JobPosts,
+    isLoading: isJobLoading,
+    isError: isJobError,
+  } = useQuery({
+    queryKey: ["JobPosts"],
+    queryFn: ({ signal }) => GetJobPost({ signal: signal }),
+    staleTime: 5000,
+  });
+
+  // Fetching Companies using React Query
+  const {
+    data: Company,
+    isLoading: isCompanyLoading,
+    isError: isCompanyError,
+  } = useQuery({
+    queryKey: ["Company"],
+    queryFn: ({ signal }) => fetchCompanies({ signal: signal }),
+    staleTime: 5000,
+  });
+
+  const { data: JobPostActivity } = useQuery({
+    queryKey: ["JobPostActivity"],
+    queryFn: ({ signal }) => GetJobActivity({ signal }),
+    staleTime: 5000,
+  });
+  const JobPostsdata = JobPosts?.JobPosts;
+  const Companiesdata = Company?.Companies;
+  const JobPostActivitydata = JobPostActivity?.UserJobActivitys;
   return (
     <ScrollView>
       <View style={styles.main}>
@@ -182,7 +312,7 @@ export default function PersonalScreen({ navigation }: any) {
                 </View>
               </TouchableOpacity> */}
           </View>
-          {/* {renderContent()} */}
+          {renderContent()}
         </View>
       </View>
     </ScrollView>
@@ -288,5 +418,91 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     gap: 5,
     alignItems: "center",
+  },
+  jobCard: {
+    borderWidth: 1,
+    borderColor: "#DDD",
+    borderRadius: 10,
+    padding: 15,
+    backgroundColor: "#FFFFFF",
+    marginBottom: 20,
+    width: 370,
+  },
+  jobTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  iconRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 5,
+  },
+  jobDetails: {
+    fontSize: 14,
+    color: "#777",
+    marginLeft: 5,
+  },
+  skillContainer: {
+    flexDirection: "row",
+    marginTop: 10,
+    gap: 5,
+  },
+  skill: {
+    backgroundColor: "#EFEFEF",
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+  },
+  skillText: {
+    fontSize: 12,
+    color: "#333",
+  },
+  back: {
+    backgroundColor: "#fff",
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    borderTopWidth: 1,
+    borderTopColor: "#DDD",
+    // alignItems: "center",
+  },
+  button: {
+    borderColor: "#ddd",
+    borderWidth: 1,
+    width: "100%",
+    paddingVertical: 10,
+    paddingHorizontal: 40,
+    borderRadius: 10,
+    alignItems: "center",
+    textAlign: "center",
+  },
+  buttonText: {
+    fontSize: 15,
+    lineHeight: 22.5,
+    color: "#333",
+    fontWeight: "bold",
+  },
+  maincompany: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  maincom1: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  image: {
+    height: 48,
+    width: 48,
+    backgroundColor: "white",
+  },
+  text: {
+    fontSize: 16,
+    lineHeight: 25,
+    marginTop: 5,
+    marginBottom: 5,
   },
 });

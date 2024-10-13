@@ -1,5 +1,5 @@
 import {
-  Button,
+  ActivityIndicator,
   Dimensions,
   FlatList,
   NativeScrollEvent,
@@ -8,46 +8,122 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
+  Text,
 } from "react-native";
-
-//   import EditScreenInfo from "@/components/EditScreenInfo";
-//   import { Text, View } from "@/components/Themed";
-import CompanyCard from "../components/CompanyCard";
-import { companyData } from "../mock/CompanyData";
 import { useRef, useState } from "react";
 import RNPickerSelect from "react-native-picker-select";
 import CardCompany from "../components/CardCompany";
-import { Text } from "react-native";
+import { useQuery } from "@tanstack/react-query";
+import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
+import { fetchCompanies } from "../Services/CompanyService/GetCompanies";
+import CompanyCard from "../components/CompanyCard";
 
 const SkillSet = ["PHP", "Front End", "Java", "End", "Javascript"];
 const { width } = Dimensions.get("window");
+interface BusinessStream {
+  id: number;
+  businessStreamName: string;
+  description: string;
+}
+interface JobType {
+  id: number;
+  name: string;
+  description: string;
+}
+
+interface JobPost {
+  id: number;
+  jobTitle: string;
+  jobDescription: string;
+  salary: number;
+  postingDate: string;
+  expiryDate: string;
+  experienceRequired: number;
+  qualificationRequired: string;
+  benefits: string;
+  imageURL: string;
+  isActive: boolean;
+  companyId: number;
+  companyName: string;
+  websiteCompanyURL: string;
+  jobType: JobType; // jobType là đối tượng JobType
+  jobLocationCities: string[];
+  jobLocationAddressDetail: string[];
+  skillSets: string[]; // Array of skill sets, có thể là array rỗng
+}
+interface Company {
+  id: number;
+  companyName: string;
+  companyDescription: string;
+  websiteURL: string;
+  establishedYear: number;
+  country: string;
+  city: string;
+  address: string;
+  numberOfEmployees: number;
+  businessStream: BusinessStream;
+  jobPosts: JobPost[];
+  imageUrl: string;
+}
+
 export default function CompaniesScreen({ navigation }: any) {
   const [location, setLocation] = useState("");
   const [industry, setIndustry] = useState("");
-  const extendedData = [...companyData, ...companyData];
+
   const flatListRef = useRef<FlatList<Company>>(null);
+
+  // Handling scroll for infinite loop in FlatList
   const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const currentIndex = Math.floor(contentOffsetX / width);
-
-    if (currentIndex >= companyData.length) {
-      const scrollToIndex = currentIndex % companyData.length;
-      flatListRef.current?.scrollToIndex({
+  
+    if (Companiesdata && currentIndex >= Companiesdata.length && flatListRef.current) {
+      const scrollToIndex = currentIndex % Companiesdata.length;
+      flatListRef.current.scrollToIndex({
         index: scrollToIndex,
         animated: false,
       });
     }
   };
-  const changeMessage = () => {
-    setLocation("You pressed the button!");
-  };
+
+  // Fetch JobPosts using React Query
+  const {
+    data: JobPosts,
+    isLoading: isJobLoading,
+    isError: isJobError,
+  } = useQuery({
+    queryKey: ["JobPosts"],
+    queryFn: ({ signal }) => GetJobPost({ signal: signal }),
+    staleTime: 5000,
+  });
+
+  // Fetching Companies using React Query
+  const {
+    data: Company,
+    isLoading: isCompanyLoading,
+    isError: isCompanyError,
+  } = useQuery({
+    queryKey: ["Company"],
+    queryFn: ({ signal }) => fetchCompanies({ signal: signal }),
+    staleTime: 5000,
+  });
+
+  const Companiesdata = Company?.Companies;
+  const extendedData = Companiesdata ? [...Companiesdata, ...Companiesdata] : [];
+
+  // Conditional rendering to handle loading and errors
+  if (isCompanyLoading || isJobLoading) {
+    return <ActivityIndicator size="large" color="#0000ff" />;
+  }
+
+  if (isCompanyError || isJobError) {
+    return <Text>Error fetching data</Text>;
+  }
+
   return (
-    <ScrollView>
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
-        {/* <Text style={styles.title}>Tab Twaso</Text>
-        <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-        <EditScreenInfo path="app/(tabs)/two.tsx" /> */}
-        <Text style={styles.title}> Top KeyWord</Text>
+        <Text style={styles.title}>Top Keywords</Text>
         <View style={styles.skillList}>
           {SkillSet.map((tag, index) => (
             <TouchableOpacity key={index} style={styles.button}>
@@ -55,11 +131,11 @@ export default function CompaniesScreen({ navigation }: any) {
             </TouchableOpacity>
           ))}
         </View>
-        <Text style={styles.title1}>Spotlight Seacrh Page</Text>
+
+        <Text style={styles.title1}>Spotlight Search Page</Text>
         <FlatList
           ref={flatListRef}
           data={extendedData}
-          style={{ marginTop: 10 }}
           horizontal
           keyExtractor={(item, index) => index.toString()}
           showsHorizontalScrollIndicator={false}
@@ -67,18 +143,20 @@ export default function CompaniesScreen({ navigation }: any) {
           decelerationRate="fast"
           onMomentumScrollEnd={handleScrollEnd}
           pagingEnabled
+          initialNumToRender={5}
+          windowSize={10}
           renderItem={({ item }) => (
             <View style={{ width }}>
               <CompanyCard data={item} navigation={navigation} />
             </View>
           )}
         />
+
         <Text style={styles.title1}>Popular Companies</Text>
         <View style={styles.filter}>
           {/* Location Picker */}
           <View style={styles.dropdown}>
             <Text style={styles.label}>Location:</Text>
-            <Text>{location}</Text>
             <RNPickerSelect
               onValueChange={(value) => setLocation(value)}
               items={[
@@ -96,12 +174,11 @@ export default function CompaniesScreen({ navigation }: any) {
           {/* Industry Picker */}
           <View style={styles.dropdown}>
             <Text style={styles.label}>Industry:</Text>
-            <Text>{industry}</Text>
             <RNPickerSelect
               onValueChange={(value) => setIndustry(value)}
               items={[
                 { label: "Java", value: "Java" },
-                { label: "Reactjs ", value: "Reactjs" },
+                { label: "Reactjs", value: "Reactjs" },
                 { label: "React Native", value: "React Native" },
                 { label: ".Net", value: ".Net" },
               ]}
@@ -112,9 +189,10 @@ export default function CompaniesScreen({ navigation }: any) {
           </View>
         </View>
 
-        <View style={styles.companiesisplay}>
-          {companyData.map((company) => (
-            <CardCompany data={company} navigation={navigation} />
+        {/* Displaying companies */}
+        <View style={styles.companiesDisplay}>
+          {Companiesdata?.map((company) => (
+            <CardCompany key={company.id} data={company} navigation={navigation} />
           ))}
         </View>
       </View>
@@ -123,6 +201,9 @@ export default function CompaniesScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
+  scrollContainer: {
+    paddingBottom: 120, // Add some padding for better scrolling
+  },
   container: {
     flex: 1,
     flexDirection: "column",
@@ -130,8 +211,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 30,
     paddingHorizontal: 10,
-    backgroundColor:'white'
-
+    backgroundColor: "white",
   },
   title: {
     fontSize: 20,
@@ -143,11 +223,6 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     fontWeight: "bold",
     marginTop: 10,
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: "80%",
   },
   skillList: {
     flexDirection: "row",
@@ -170,7 +245,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     textAlign: "center",
   },
-
   filter: {
     borderWidth: 1,
     borderBottomColor: "#dedede",
@@ -182,12 +256,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-around",
   },
-  container1: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 16,
-    backgroundColor: "#fff",
-  },
   dropdown: {
     flexDirection: "row",
     alignItems: "center",
@@ -197,9 +265,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginRight: 10,
   },
-  companiesisplay: {
+  companiesDisplay: {
+    width:"100%",
     flexDirection: "column",
-    gap: 5,
+    marginBottom: 10, // Spacing between company cards
     alignItems: "center",
   },
 });
@@ -213,7 +282,7 @@ const pickerSelectStyles = StyleSheet.create({
     borderColor: "gray",
     borderRadius: 4,
     color: "black",
-    paddingRight: 30, 
+    paddingRight: 30,
   },
   inputAndroid: {
     fontSize: 16,
@@ -223,6 +292,6 @@ const pickerSelectStyles = StyleSheet.create({
     borderColor: "gray",
     borderRadius: 4,
     color: "black",
-    paddingRight: 30, 
+    paddingRight: 30,
   },
 });

@@ -17,10 +17,54 @@ import { fetchCompanies } from "../Services/CompanyService/GetCompanies";
 import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
 
 const { width } = Dimensions.get("window");
+interface BusinessStream {
+  id: number;
+  businessStreamName: string;
+  description: string;
+}
+interface JobType {
+  id: number;
+  name: string;
+  description: string;
+}
 
+interface JobPost {
+  id: number;
+  jobTitle: string;
+  jobDescription: string;
+  salary: number;
+  postingDate: string;
+  expiryDate: string;
+  experienceRequired: number;
+  qualificationRequired: string;
+  benefits: string;
+  imageURL: string;
+  isActive: boolean;
+  companyId: number;
+  companyName: string;
+  websiteCompanyURL: string;
+  jobType: JobType; // jobType là đối tượng JobType
+  jobLocationCities: string[];
+  jobLocationAddressDetail: string[];
+  skillSets: string[]; // Array of skill sets, có thể là array rỗng
+}
+interface Company {
+  id: number;
+  companyName: string;
+  companyDescription: string;
+  websiteURL: string;
+  establishedYear: number;
+  country: string;
+  city: string;
+  address: string;
+  numberOfEmployees: number;
+  businessStream: BusinessStream;
+  jobPosts: JobPost[];
+  imageUrl: string;
+}
 const HomeScreen: React.FC = ({ navigation }: any) => {
   const [showAllJobs, setShowAllJobs] = useState(false);
-  const flatListRef = useRef<FlatList<any>>(null); // Chú ý kiểu dữ liệu
+  const flatListRef = useRef<FlatList<Company>>(null); // Chú ý kiểu dữ liệu
   const {
     data: Company,
     isLoading: isCompanyLoading,

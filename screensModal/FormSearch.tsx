@@ -9,10 +9,36 @@ import {
 } from "react-native";
 import CardJobs from "../components/CardJobs";
 import { jobData } from "../mock/JobData";
-import { companyData } from "../mock/CompanyData";
+// import { companyData } from "../mock/CompanyData";
+import { useQuery } from "@tanstack/react-query";
+import { fetchCompanies } from "../Services/CompanyService/GetCompanies";
+import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
 const SkillSet = ["PHP", "Front End", "Java", "End", "Javascript"];
 export default function FormSearch({ navigation }: any) {
-  const jobSlice = jobData.slice(0, 5);
+  const {
+    data: JobPosts,
+    isLoading: isJobLoading,
+    isError: isJobError,
+  } = useQuery({
+    queryKey: ["JobPosts"],
+    queryFn: ({ signal }) => GetJobPost({ signal: signal }),
+    staleTime: 5000,
+  });
+
+  // Fetching Companies using React Query
+  const {
+    data: Company,
+    isLoading: isCompanyLoading,
+    isError: isCompanyError,
+  } = useQuery({
+    queryKey: ["Company"],
+    queryFn: ({ signal }) => fetchCompanies({ signal: signal }),
+    staleTime: 5000,
+  });
+
+  const JobPostsdata = JobPosts?.JobPosts;
+  const Companiesdata = Company?.Companies;
+  const jobSlice = JobPostsdata?.slice(0, 5);
   return (
     <ScrollView>
       <View style={styles.main}>
@@ -44,24 +70,25 @@ export default function FormSearch({ navigation }: any) {
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "space-between",
-                width:'100%'
+                width: "100%",
+                paddingHorizontal: 15,
               }}
             >
               <Text style={styles.title}>Popular Jobs from Companies</Text>
               <TouchableOpacity>
-              <Text style={styles.title1}>View More</Text>
+                <Text style={styles.title1}>View More</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.jobdisplay}>
-              {jobSlice.map((job) => {
-                const companys = companyData.find(
+              {jobSlice?.map((job) => {
+                const companys = Companiesdata?.find(
                   (item) => item.id === job.companyId
                 );
                 return (
                   <CardJobs
                     key={job.id}
                     data={job}
-                    img={job.companyImage}
+                    // img={job.companyImage}
                     company={companys}
                     navigation={navigation}
                   />
@@ -135,9 +162,8 @@ const styles = StyleSheet.create({
   },
 
   main2: {
-    width: "100%",
-    paddingVertical: 20,
-    paddingHorizontal: 20,
+    paddingVertical: 30,
+    paddingHorizontal: 50,
     backgroundColor: "#fff",
   },
   main3: {
@@ -147,8 +173,10 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   jobdisplay: {
+    paddingRight: 12,
     flexDirection: "column",
     gap: 5,
+    paddingLeft: 10,
     alignItems: "center",
   },
 });

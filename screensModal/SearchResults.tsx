@@ -10,9 +10,12 @@ import {
 } from "react-native";
 import CardJobs from "../components/CardJobs";
 import { jobData } from "../mock/JobData";
-import { companyData } from "../mock/CompanyData";
+// import { companyData } from "../mock/CompanyData";
 import CardCompany from "../components/CardCompany";
 import LocationModal from "../components/LocationModal";
+import { useQuery } from "@tanstack/react-query";
+import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
+import { fetchCompanies } from "../Services/CompanyService/GetCompanies";
 
 type RootStackParamList = {
   Home: undefined;
@@ -27,10 +30,33 @@ export default function SearchResults({ navigation }: any) {
   // const { query } = route.params;
   const { query, location } = route.params || { query: "", location: "" }; 
 
-  const jobSlice = jobData.slice(0, 5);
+ 
 
   const [fadeAnim] = useState(new Animated.Value(1)); // Tạo giá trị animated cho opacity
+  const {
+    data: JobPosts,
+    isLoading: isJobLoading,
+    isError: isJobError,
+  } = useQuery({
+    queryKey: ["JobPosts"],
+    queryFn: ({ signal }) => GetJobPost({ signal: signal }),
+    staleTime: 5000,
+  });
 
+  // Fetching Companies using React Query
+  const {
+    data: Company,
+    isLoading: isCompanyLoading,
+    isError: isCompanyError,
+  } = useQuery({
+    queryKey: ["Company"],
+    queryFn: ({ signal }) => fetchCompanies({ signal: signal }),
+    staleTime: 5000,
+  });
+
+  const JobPostsdata = JobPosts?.JobPosts;
+  const Companiesdata = Company?.Companies;
+  const jobSlice = JobPostsdata?.slice(0, 5);
   const handleTabChange = (tab:any) => {
     // Animation fade out trước khi thay đổi tab
     Animated.timing(fadeAnim, {
@@ -61,15 +87,15 @@ export default function SearchResults({ navigation }: any) {
             Have {jobData.length} jobs
           </Text>
           <View style={styles.jobdisplay}>
-            {jobSlice.map((job) => {
-              const company = companyData.find(
+            {jobSlice?.map((job) => {
+              const company = Companiesdata?.find(
                 (item) => item.id === job.companyId
               );
               return (
                 <CardJobs
                   key={job.id}
                   data={job}
-                  img={job.companyImage}
+                  // img={job.companyImage}
                   company={company}
                   navigation={navigation}
                 />
@@ -80,10 +106,10 @@ export default function SearchResults({ navigation }: any) {
             Companies
           </Text>
           <Text style={{ fontSize: 15, lineHeight: 22.5 }}>
-            Have {companyData.length} companies
+            Have {Companiesdata?.length} companies
           </Text>
           <View style={styles.companiesisplay}>
-            {companyData.map((company) => (
+            {Companiesdata?.map((company) => (
               <CardCompany
                 key={company.id}
                 data={company}
@@ -103,15 +129,15 @@ export default function SearchResults({ navigation }: any) {
             Have {jobData.length} jobs
           </Text>
           <View style={styles.jobdisplay}>
-            {jobSlice.map((job) => {
-              const company = companyData.find(
+            {jobSlice?.map((job) => {
+              const company = Companiesdata?.find(
                 (item) => item.id === job.companyId
               );
               return (
                 <CardJobs
                   key={job.id}
                   data={job}
-                  img={job.companyImage}
+                  // img={job.companyImage}
                   company={company}
                   navigation={navigation}
                 />
@@ -127,10 +153,10 @@ export default function SearchResults({ navigation }: any) {
             Companies
           </Text>
           <Text style={{ fontSize: 15, lineHeight: 22.5 }}>
-            Have {companyData.length} companies
+            Have {Companiesdata?.length} companies
           </Text>
           <View style={styles.companiesisplay}>
-            {companyData.map((company) => (
+            {Companiesdata?.map((company) => (
               <CardCompany
                 key={company.id}
                 data={company}

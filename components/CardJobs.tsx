@@ -51,14 +51,14 @@ interface Company {
   imageUrl: string;
 }
 interface props {
-  data: JobPost;
+  data: JobPost |undefined;
   // img: string | undefined;
   company: Company | undefined;
   navigation: any;
 }
 
 export default function CardJobs({ data,  company, navigation }: props) {
-  const jobDetailHref = `/job/${data.id}`;
+  const jobDetailHref = `/job/${data?.id}`;
   const [follow, setFollow] = useState<boolean>(false);
   return (
     <View style={styles.card}>

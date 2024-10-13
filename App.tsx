@@ -20,6 +20,7 @@ import Notification from "./screensModal/Notification";
 import Apply from "./screensModal/Apply";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./Services/mainService";
+import ApplyComplete from "./screensModal/ApplyComplete";
 
 export default function App() {
   const Stack = createStackNavigator();
@@ -93,7 +94,12 @@ export default function App() {
           name="Apply"
           component={Apply}
           options={{ presentation: "modal" }}
-        />
+        /> 
+       <Stack.Screen
+        name="ApplyComplete"
+        component={ApplyComplete}
+        options={{ presentation: "modal" }}
+      />
       </Stack.Navigator>
     </NavigationContainer>
     </QueryClientProvider>

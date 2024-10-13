@@ -7,13 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-// import { Link, useNavigation } from "expo-router"; // Sử dụng Expo Router để điều hướng
 import Icon from "react-native-vector-icons/MaterialIcons";
-// import { companyData } from "../mock/CompanyData";
-import { jobData } from "../mock/JobData";
-import { Link } from "@react-navigation/native";
-import { useNavigation } from "@react-navigation/native";
-import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import RenderHtml from "react-native-render-html";
 import { useQuery } from "@tanstack/react-query";
 import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
@@ -23,6 +17,7 @@ interface BusinessStream {
   businessStreamName: string;
   description: string;
 }
+
 interface JobType {
   id: number;
   name: string;
@@ -44,11 +39,12 @@ interface JobPost {
   companyId: number;
   companyName: string;
   websiteCompanyURL: string;
-  jobType: JobType; // jobType là đối tượng JobType
+  jobType: JobType;
   jobLocationCities: string[];
   jobLocationAddressDetail: string[];
-  skillSets: string[]; // Array of skill sets, có thể là array rỗng
+  skillSets: string[];
 }
+
 interface Company {
   id: number;
   companyName: string;
@@ -72,28 +68,8 @@ interface CardEmployerProps {
 export default function CompanyCard({ data, navigation }: CardEmployerProps) {
   const [follow, setFollow] = useState<boolean>(false);
   const { width } = Dimensions.get("window");
-  //   const navigation = useNavigation();
-  // const navigate =useNavigation()
 
-  // const handleNavigate =()=>{
-  //   navigate('/modal',stat)
-  // }
-  // Kiểm tra dữ liệu đầu vào, trả về null nếu dữ liệu thiếu
-  if (
-    !data ||
-    !data.imageUrl ||
-    !data.companyName ||
-    !data.companyDescription ||
-    !data.jobPosts
-  ) {
-    return null; // Không hiển thị nếu dữ liệu không đầy đủ
-  }
-
-  const {
-    data: JobPosts,
-    // isLoading: isJobLoading,
-    // isError: isJobError,
-  } = useQuery({
+  const { data: JobPosts } = useQuery({
     queryKey: ["JobPosts"],
     queryFn: ({ signal }) => GetJobPost({ signal: signal }),
     staleTime: 5000,
@@ -102,8 +78,6 @@ export default function CompanyCard({ data, navigation }: CardEmployerProps) {
 
   return (
     <View style={styles.main}>
-      {/* Điều hướng sử dụng Link từ expo-router */}
-
       <View>
         <Image
           source={{
@@ -125,12 +99,6 @@ export default function CompanyCard({ data, navigation }: CardEmployerProps) {
             />
           </View>
           <View style={styles.main3}>
-            {/* <Link
-              to={{
-                pathname: "/CompanyDetail",
-                params: { id: data?.id, companyDetail: JSON.stringify(data) },
-              }}
-            > */}
             <TouchableOpacity
               onPress={() =>
                 navigation.navigate("CompanyDetail", {
@@ -147,20 +115,16 @@ export default function CompanyCard({ data, navigation }: CardEmployerProps) {
                 {data.companyName}
               </Text>
             </TouchableOpacity>
-            {/* </Link> */}
           </View>
         </View>
 
-        {/* Mô tả công ty */}
         <Text style={styles.text} numberOfLines={2} ellipsizeMode="tail">
           <RenderHtml
             contentWidth={width}
             source={{ html: data.companyDescription }}
           />
-          {/* {data.companyDescription} */}
         </Text>
 
-        {/* Hiển thị số lượng công việc */}
         <View style={styles.job}>
           <Icon
             name="work"
@@ -173,7 +137,6 @@ export default function CompanyCard({ data, navigation }: CardEmployerProps) {
           </Text>
         </View>
 
-        {/* Hiển thị danh sách kỹ năng và nút bookmark */}
         <View style={styles.skill}>
           <View style={styles.skillList}>
             {data.jobPosts.map((job, jobIndex) => {
@@ -189,7 +152,6 @@ export default function CompanyCard({ data, navigation }: CardEmployerProps) {
             })}
           </View>
           <View>
-            {/* Nút follow/unfollow */}
             <TouchableOpacity onPress={() => setFollow(!follow)}>
               <Icon
                 name={follow ? "bookmark" : "bookmark-border"}
@@ -210,61 +172,69 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     borderWidth: 1,
     borderColor: "#dedede",
-    width: "100%", // Đặt width 100% để tránh việc nội dung tràn ra ngoài
-    backgroundColor:'white'
+    borderRadius: 10, // Rounded card edges
+    overflow: "hidden", // Prevent content overflow
+    marginBottom: 15, // Space between cards
+    width: "100%", // Full width of the container
+    backgroundColor: "white",
+    shadowColor: "#000", // Shadow for iOS
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2, // Shadow for Android
   },
   logo: {
     height: 200,
-    width: "100%", // Đảm bảo hình ảnh chiếm hết chiều rộng
+    width: "100%", // Ensures image fills the width
+    resizeMode: "cover", // Keeps image aspect ratio
   },
   main2: {
-    paddingRight: 50,
+    paddingRight: 20,
     paddingLeft: 15,
     backgroundColor: "#fff",
-    flexGrow: 1,
-    paddingVertical: 10,
+    paddingVertical: 15,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    flexShrink: 1, // Co lại nếu vượt quá kích thước của container
+    flexShrink: 1, // Ensure content fits within the container
+    marginBottom: 10, // Spacing between header and description
   },
   img: {
-    padding: 14,
-    borderRadius: 2,
+    padding: 12,
+    borderRadius: 50, // Rounded logo container
     borderWidth: 1,
     borderColor: "#dedede",
     backgroundColor: "white",
   },
   logo1: {
-    height: 80,
-    width: 80,
+    height: 60, // Adjusted size for company logo
+    width: 60,
+    borderRadius: 30, // Rounded company logo
   },
   main3: {
-    marginTop: 12,
-    marginLeft: 8,
-    flexShrink: 1, // Đảm bảo không vượt quá container
+    marginLeft: 10, // Adjusted margin for spacing
+    flexShrink: 1, // Ensure text content does not overflow the container
   },
   textStyle: {
     color: "#FF4500",
-    lineHeight: 30,
-    fontSize: 18,
+    lineHeight: 24,
+    fontSize: 16,
     fontWeight: "600",
-    flexShrink: 1, // Co lại nếu cần thiết
+    flexShrink: 1,
   },
   text: {
-    fontSize: 16,
-    lineHeight: 25,
+    fontSize: 14,
+    lineHeight: 22,
+    color: "#333",
     marginTop: 5,
-    marginBottom: 5,
-    flexShrink: 1, // Co lại khi nội dung quá dài
+    marginBottom: 10,
   },
   job: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 10,
-    marginBottom: 10,
-    gap: 10,
+    marginBottom: 15,
   },
   skill: {
     flexDirection: "row",
@@ -274,21 +244,20 @@ const styles = StyleSheet.create({
   skillList: {
     flexDirection: "row",
     flexWrap: "wrap",
-    // Đảm bảo các phần tử tự động xuống dòng nếu không đủ không gian
   },
   button: {
-    backgroundColor: "#f0f0f0",
-    paddingVertical: 5,
-    paddingHorizontal: 10,
+    backgroundColor: "#f5f5f5",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     borderRadius: 5,
     borderWidth: 1,
-    borderColor: "#dedede",
-    marginRight: 10,
-    marginBottom: 10,
+    borderColor: "#e0e0e0",
+    marginRight: 8,
+    marginBottom: 8,
   },
   buttonText: {
-    color: "#6c6c6c",
-    fontSize: 16,
+    color: "#666",
+    fontSize: 14,
     fontWeight: "500",
     textAlign: "center",
   },

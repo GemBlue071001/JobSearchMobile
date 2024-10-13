@@ -1,6 +1,8 @@
+import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
 import { View, Image, TouchableOpacity, Text, StyleSheet } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
 
 const SkillSet = ["PHP", "Front End", "Java", "End", "Javascript"];
 
@@ -16,6 +18,52 @@ const InfoLine = ({ icon, text }: InfoLineProps) => (
   </View>
 );
 
+interface BusinessStream {
+  id: number;
+  businessStreamName: string;
+  description: string;
+}
+interface JobType {
+  id: number;
+  name: string;
+  description: string;
+}
+
+interface JobPost {
+  id: number;
+  jobTitle: string;
+  jobDescription: string;
+  salary: number;
+  postingDate: string;
+  expiryDate: string;
+  experienceRequired: number;
+  qualificationRequired: string;
+  benefits: string;
+  imageURL: string;
+  isActive: boolean;
+  companyId: number;
+  companyName: string;
+  websiteCompanyURL: string;
+  jobType: JobType; 
+  jobLocationCities: string[];
+  jobLocationAddressDetail: string[];
+  skillSets: string[]; 
+}
+interface Company {
+  id: number;
+  companyName: string;
+  companyDescription: string;
+  websiteURL: string;
+  establishedYear: number;
+  country: string;
+  city: string;
+  address: string;
+  numberOfEmployees: number;
+  businessStream: BusinessStream;
+  jobPosts: JobPost[];
+  imageUrl: string;
+}
+
 interface CardEmployerProps {
   data: Company;
   navigation: any;
@@ -23,11 +71,17 @@ interface CardEmployerProps {
 
 export default function CardCompany({ data, navigation }: CardEmployerProps) {
   const [follow, setFollow] = useState<boolean>(false);
+  const { data: JobPosts } = useQuery({
+    queryKey: ["JobPosts"],
+    queryFn: ({ signal }) => GetJobPost({ signal: signal }),
+    staleTime: 5000,
+  });
+  const JobPostsdata = JobPosts?.JobPosts;
   return (
     <View style={styles.card}>
       <Image
         source={{
-          uri: data.image,
+          uri: data.imageUrl,
         }}
         style={styles.image}
       />
@@ -40,48 +94,47 @@ export default function CardCompany({ data, navigation }: CardEmployerProps) {
             })
           }
         >
-          <Text style={{ fontSize: 20, lineHeight: 30 }}>{data.name}</Text>
+          <Text style={{ fontSize: 20, lineHeight: 30 }}>
+            {data.companyName}
+          </Text>
         </TouchableOpacity>
 
         {/* Skill List */}
         <View style={styles.skillList}>
-          {data.jobs.map((job, jobIndex) =>
-            job.tags?.map((tag, tagIndex) => (
+          {data.jobPosts.map((job, jobIndex) => {
+            const jobSkill = JobPostsdata?.find((item) => item.id === job.id);
+            return jobSkill?.skillSets?.map((tag, tagIndex) => (
               <TouchableOpacity
                 key={`${jobIndex}-${tagIndex}`}
                 style={styles.button}
               >
                 <Text style={styles.buttonText}>{tag}</Text>
               </TouchableOpacity>
-            ))
-          )}
+            ));
+          })}
         </View>
 
         {/* Location */}
         <View style={styles.location}>
           <Icon name="location-on" size={20} color="#808080" />
-          <Text style={styles.locationtext}>{data.location}</Text>
+          <Text style={styles.locationtext}  numberOfLines={2} ellipsizeMode="tail">
+            {data.address} in {data.city}
+          </Text>
         </View>
 
         {/* Info Lines */}
         <View style={styles.line2}>
           <InfoLine icon="group" text="123" />
-          <InfoLine icon="work" text={`${data?.jobs?.length} jobs`} />
+          <InfoLine icon="work" text={`${data?.jobPosts?.length} jobs`} />
         </View>
 
         {/* Job Tags */}
         <View style={styles.location}>
           <Icon name="folder" size={20} color="#808080" />
           <View style={styles.tagContainer}>
-            {data?.jobs?.map((item, jobIndex) => (
-              <React.Fragment key={jobIndex}>
-                {item?.tags?.map((tag, tagIndex) => (
-                  <Text style={styles.tagText} key={tagIndex}>
-                    {tag},
-                  </Text>
-                ))}
-              </React.Fragment>
-            ))}
+            <Text style={styles.tagText}>
+              {data.businessStream.businessStreamName},
+            </Text>
           </View>
         </View>
       </View>
@@ -111,6 +164,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     position: "relative",
     gap: 20,
+    
   },
   image: {
     height: 48,
@@ -123,11 +177,12 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     justifyContent: "flex-start",
     flexShrink: 1,
+   
   },
   skillList: {
     flexDirection: "row",
-    flexWrap: "wrap", // Ensures buttons wrap when necessary
-    width: "100%", // Ensures the skill list respects the card's width
+    flexWrap: "wrap", 
+    width: "100%",
   },
   button: {
     backgroundColor: "#f0f0f0",
@@ -143,13 +198,14 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#6c6c6c",
     fontSize: 10,
-    lineHeight:15,
+    lineHeight: 15,
     fontWeight: "500",
     textAlign: "center",
     flexShrink: 1, // Ensures text inside the button shrinks when necessary
   },
   location: {
     flexDirection: "row",
+    
     gap: 5,
     alignItems: "center",
     justifyContent: "flex-start",
@@ -157,6 +213,7 @@ const styles = StyleSheet.create({
   locationtext: {
     fontSize: 15,
     lineHeight: 30,
+    flexShrink: 1
   },
   line2: {
     flexDirection: "row",
