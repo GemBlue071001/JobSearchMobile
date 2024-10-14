@@ -9,19 +9,27 @@ import {
 } from "react-native";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useMutation } from "@tanstack/react-query";
-import { PostEducationDetails } from "../Services/EducationDetails/PostEducationDetails";
-import { queryClient } from "../Services/mainService";
 
-export default function Education({ navigation }: any) {
-  const [schoolName, setSchoolName] = useState<string>("");
-  const [institutionName, setInstitutionName] = useState<string>("");
-  const [degree, setDegree] = useState<string>("");
-  const [fieldOfStudy, setFieldOfStudy] = useState<string>("");
-  const [gpa, setGpa] = useState<string>("");
-  const [date, setDate] = useState(new Date());
-  const [formattedDate, setFormattedDate] = useState("select from date");
-  const [dateTo, setDateTo] = useState(new Date());
-  const [formattedDateTo, setFormattedDateTo] = useState("select to date");
+import { queryClient } from "../Services/mainService";
+import { PutEducationDetails } from "../Services/EducationDetails/PutEducationDetails";
+
+export default function EducationDetailsEdit({ route, navigation }: any) {
+  const { item } = route.params; // Get the full item passed via navigation
+  const [schoolName, setSchoolName] = useState<string>(item.name);
+  const [institutionName, setInstitutionName] = useState<string>(
+    item.institutionName
+  );
+  const [degree, setDegree] = useState<string>(item.degree);
+  const [fieldOfStudy, setFieldOfStudy] = useState<string>(item.fieldOfStudy);
+  const [gpa, setGpa] = useState<string>(item.gpa.toString());
+  const [date, setDate] = useState(new Date(item.startDate));
+  const [formattedDate, setFormattedDate] = useState(
+    new Date(item.startDate).toDateString()
+  );
+  const [dateTo, setDateTo] = useState(new Date(item.endDate));
+  const [formattedDateTo, setFormattedDateTo] = useState(
+    new Date(item.endDate).toDateString()
+  );
 
   const showDatePicker = (
     setDateFunction: Function,
@@ -41,23 +49,15 @@ export default function Education({ navigation }: any) {
   };
 
   const { mutate, isPending } = useMutation({
-    mutationFn: PostEducationDetails,
+    mutationFn: PutEducationDetails,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["EducationDetails"] });
-      navigation.navigate("General Information");
-      // setFormData({
-      //   name: "",
-      //   institutionName: "",
-      //   degree: "",
-      //   FieldOfStudy: "",
-      //   startMonth: "",
-      //   startYear: "",
-      //   endMonth: "",
-      //   endYear: "",
-      //   gpa: 0,
-      // });
+      queryClient.invalidateQueries({
+        queryKey: ["EducationDetails"],
+        refetchType: "active",
+      });
+      Alert.alert("Education details updated successfully");
 
-      Alert.alert("Complete add Education");
+      navigation.navigate("General Information");
     },
     onError: () => {
       Alert.alert("Failed to update education details");
@@ -77,11 +77,11 @@ export default function Education({ navigation }: any) {
       alert("Please fill in all required fields.");
       return;
     }
-  
+
     // Convert to ISO 8601 format
     const isoStartDate = new Date(date).toISOString();
     const isoEndDate = new Date(dateTo).toISOString();
-  
+
     mutate({
       data: {
         name: schoolName,
@@ -90,11 +90,12 @@ export default function Education({ navigation }: any) {
         fieldOfStudy: fieldOfStudy,
         startDate: isoStartDate,
         endDate: isoEndDate,
-        gpa: parseFloat(gpa), // Ensure GPA is a number
+        gpa: parseFloat(gpa), 
+        id:item.id
       },
     });
-  
-    console.log("Education saved:", {
+
+    console.log("Education updated:", {
       schoolName,
       from: isoStartDate,
       to: isoEndDate,

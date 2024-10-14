@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Alert,
   StyleSheet,
@@ -8,19 +8,23 @@ import {
   View,
 } from "react-native";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import { PostExperienceDetails } from "../Services/ExperienceDetailService/PostExperienceDetail";
-import { queryClient } from "../Services/mainService";
 import { useMutation } from "@tanstack/react-query";
 
-export default function Experience({ navigation }: any) {
-  const [companyName, setCompanyName] = useState<string>("");
-  const [position, setPosition] = useState<string>("");
-  const [responsibilities, setResponsibilities] = useState<string>("");
-  const [achievements, setAchievements] = useState<string>("");
-  const [date, setDate] = useState(new Date());
-  const [formattedDate, setFormattedDate] = useState("select from date");
-  const [dateTo, setDateTo] = useState(new Date());
-  const [formattedDateTo, setFormattedDateTo] = useState("select to date");
+import { queryClient } from "../Services/mainService";
+import { PutExperienceDetail } from "../Services/ExperienceDetailService/PutExperienceDetail";
+
+export default function ExperienceDetailsEdit({ route, navigation }: any) {
+  // Receive the experience object from the route params
+  const { experience } = route.params;
+
+  const [companyName, setCompanyName] = useState<string>(experience.companyName);
+  const [position, setPosition] = useState<string>(experience.position);
+  const [responsibilities, setResponsibilities] = useState<string>(experience.responsibilities);
+  const [achievements, setAchievements] = useState<string>(experience.achievements);
+  const [date, setDate] = useState(new Date(experience.startDate));
+  const [formattedDate, setFormattedDate] = useState(new Date(experience.startDate).toDateString());
+  const [dateTo, setDateTo] = useState(new Date(experience.endDate));
+  const [formattedDateTo, setFormattedDateTo] = useState(new Date(experience.endDate).toDateString());
 
   const showDatePicker = (
     setDateFunction: Function,
@@ -40,7 +44,7 @@ export default function Experience({ navigation }: any) {
   };
 
   const { mutate, isPending } = useMutation({
-    mutationFn: PostExperienceDetails,
+    mutationFn: PutExperienceDetail, // Update experience instead of post
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ExperienceDetails"] });
       navigation.navigate("General Information");
@@ -63,108 +67,100 @@ export default function Experience({ navigation }: any) {
       alert("Please fill in all required fields.");
       return;
     }
+
+    // Convert to ISO 8601 format
     const isoStartDate = new Date(date).toISOString();
     const isoEndDate = new Date(dateTo).toISOString();
-    // Logic to save the form data or handle further submission
 
+    // Send the updated experience details
     mutate({
+      // Ensure the ID of the experience is passed for update
       data: {
-        companyName: companyName,
-        position: position,
+        companyName,
+        position,
         startDate: isoStartDate,
         endDate: isoEndDate,
-        responsibilities: responsibilities,
-        achievements: achievements,
+        responsibilities,
+        achievements,
+        id:experience.id
       },
-    });
-    console.log("Experience saved:", {
-      companyName,
-      from: formattedDate,
-      to: formattedDateTo,
-      position,
-      responsibilities,
-      achievements,
     });
   };
 
   return (
-    <>
-      <View style={styles.main}>
-        <View style={styles.main1}>
-          <View style={styles.namecompany}>
+    <View style={styles.main}>
+      <View style={styles.main1}>
+        <View style={styles.namecompany}>
+          <Text style={styles.text}>
+            Company Name <Text style={styles.require}> (*)</Text>
+          </Text>
+          <TextInput
+            style={styles.input}
+            value={companyName}
+            onChangeText={setCompanyName}
+          />
+        </View>
+        <View style={styles.date}>
+          <View style={styles.start}>
             <Text style={styles.text}>
-              Company Name <Text style={styles.require}> (*)</Text>
+              from <Text style={styles.require}> (*)</Text>
             </Text>
-            <TextInput
-              style={styles.input}
-              value={companyName}
-              onChangeText={setCompanyName}
-            />
+            <TouchableOpacity
+              onPress={() => showDatePicker(setDate, setFormattedDate, date)}
+              style={{ width: "100%", paddingRight: 10 }}
+            >
+              <TextInput
+                style={styles.inputfrom}
+                value={formattedDate}
+                editable={false}
+              />
+            </TouchableOpacity>
           </View>
-          <View style={styles.date}>
-            <View style={styles.start}>
-              <Text style={styles.text}>
-                from <Text style={styles.require}> (*)</Text>
-              </Text>
-              <TouchableOpacity
-                onPress={() => showDatePicker(setDate, setFormattedDate, date)}
-                style={{ width: "100%", paddingRight: 10 }}
-              >
-                <TextInput
-                  style={styles.inputfrom}
-                  value={formattedDate}
-                  editable={false}
-                />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.end}>
-              <Text style={styles.text}>
-                to <Text style={styles.require}> (*)</Text>
-              </Text>
-              <TouchableOpacity
-                onPress={() =>
-                  showDatePicker(setDateTo, setFormattedDateTo, dateTo)
-                }
-                style={{ width: "100%", paddingRight: 10 }}
-              >
-                <TextInput
-                  style={styles.inputfrom}
-                  value={formattedDateTo}
-                  editable={false}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-          <View style={styles.position}>
+          <View style={styles.end}>
             <Text style={styles.text}>
-              Position Description <Text style={styles.require}> (*)</Text>
+              to <Text style={styles.require}> (*)</Text>
             </Text>
-            <TextInput
-              style={styles.input}
-              value={position}
-              onChangeText={setPosition}
-            />
+            <TouchableOpacity
+              onPress={() => showDatePicker(setDateTo, setFormattedDateTo, dateTo)}
+              style={{ width: "100%", paddingRight: 10 }}
+            >
+              <TextInput
+                style={styles.inputfrom}
+                value={formattedDateTo}
+                editable={false}
+              />
+            </TouchableOpacity>
           </View>
-          <View style={styles.position}>
-            <Text style={styles.text}>
-              Responsibilities <Text style={styles.require}> (*)</Text>
-            </Text>
-            <TextInput
-              style={styles.input}
-              value={responsibilities}
-              onChangeText={setResponsibilities}
-            />
-          </View>
-          <View style={styles.position}>
-            <Text style={styles.text}>
-              Achievements <Text style={styles.require}> (*)</Text>
-            </Text>
-            <TextInput
-              style={styles.input}
-              value={achievements}
-              onChangeText={setAchievements}
-            />
-          </View>
+        </View>
+        <View style={styles.position}>
+          <Text style={styles.text}>
+            Position Description <Text style={styles.require}> (*)</Text>
+          </Text>
+          <TextInput
+            style={styles.input}
+            value={position}
+            onChangeText={setPosition}
+          />
+        </View>
+        <View style={styles.position}>
+          <Text style={styles.text}>
+            Responsibilities <Text style={styles.require}> (*)</Text>
+          </Text>
+          <TextInput
+            style={styles.input}
+            value={responsibilities}
+            onChangeText={setResponsibilities}
+          />
+        </View>
+        <View style={styles.position}>
+          <Text style={styles.text}>
+            Achievements <Text style={styles.require}> (*)</Text>
+          </Text>
+          <TextInput
+            style={styles.input}
+            value={achievements}
+            onChangeText={setAchievements}
+          />
         </View>
       </View>
       <View style={styles.save}>
@@ -172,7 +168,7 @@ export default function Experience({ navigation }: any) {
           <Text style={styles.textsave}>Save</Text>
         </TouchableOpacity>
       </View>
-    </>
+    </View>
   );
 }
 

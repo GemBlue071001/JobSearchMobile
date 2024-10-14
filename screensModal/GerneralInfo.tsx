@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Button,
+  FlatList,
   InteractionManager,
   Modal,
   Platform,
@@ -16,7 +18,38 @@ import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import RNPickerSelect from "react-native-picker-select";
 
 import Icon from "react-native-vector-icons/MaterialIcons";
+import { fetchEducationDetails } from "../Services/EducationDetails/GetEducationDetails";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import EducationCard from "../components/EducationCard";
+import { DeleteEducationDetails } from "../Services/EducationDetails/DeleteEducationDetails";
+import { queryClient } from "../Services/mainService";
+import { fetchExperienceDetails } from "../Services/ExperienceDetailService/GetExperienceDetail";
+import ExperienceCard from "../components/ExperienceCard";
+import { DeleteExperienceDetail } from "../Services/ExperienceDetailService/DeleteExperienceDetail";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { GetUserProfile } from "../Services/UserProfileService/UserProfile";
+import SkillCard from "../components/SkillCard";
+import { DeleteUserProfileCV } from "../Services/UserProfileService/DeleteUserProfileCV";
 
+interface EducationDetail {
+  id: number;
+  name: string;
+  institutionName: string;
+  degree: string;
+  fieldOfStudy: string;
+  startDate: string;
+  endDate: string;
+  gpa: number;
+}
+interface ExperienceDetail {
+  id: number;
+  companyName: string;
+  position: string;
+  startDate: string;
+  endDate: string;
+  responsibilities: string;
+  achievements: string;
+}
 export default function GerneralInfo({ navigation, route }: any) {
   const [fullName, setFullName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
@@ -26,28 +59,144 @@ export default function GerneralInfo({ navigation, route }: any) {
   const [github, setGithub] = useState<string>("");
   const [date, setDate] = useState(new Date());
   const [formattedDate, setFormattedDate] = useState("Date of Birth");
-  const scrollViewRef = useRef<ScrollView>(null); 
-  const workingExperienceRef = useRef<View>(null); 
+  const scrollViewRef = useRef<ScrollView>(null);
+  const workingExperienceRef = useRef<View>(null);
   const SkillsRef = useRef<View>(null);
-  const EducationRef =useRef<View>(null);
-
+  const EducationRef = useRef<View>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deletingIdExp, setDeletingIdExp] = useState<number | null>(null);
+  const [deletingIdSkill, setDeletingIdSkill] = useState<number | null>(null);
+  const [UserId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
+    const fetchUserId = async () => {
+      const id = await AsyncStorage.getItem("userId");
+      setUserId(id);
+    };
 
+    fetchUserId();
+  }, []);
+
+  const { data: UserProfile } = useQuery({
+    queryKey: ["UserProfile"],
+    queryFn: ({ signal }) =>
+      GetUserProfile({ id: Number(UserId), signal: signal }),
+    staleTime: 1000,
+  });
+
+  const UserProfileData = UserProfile?.UserProfiles;
+  const { mutate } = useMutation({
+    mutationFn: DeleteEducationDetails,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["EducationDetails"],
+        refetchType: "active",
+      });
+      Alert.alert("Education Details Deleted Successfully");
+      setDeletingId(null);
+    },
+    onError: () => {
+      Alert.alert("Failed to delete the skill set");
+      setDeletingId(null);
+    },
+  });
+
+  const { mutate: DeleteExpDetails } = useMutation({
+    mutationFn: DeleteExperienceDetail,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["ExperienceDetails"],
+        refetchType: "active",
+      });
+      Alert.alert("Experience Details Deleted Successfully");
+      setDeletingId(null);
+    },
+    onError: () => {
+      Alert.alert("Failed to delete the Experience");
+      setDeletingId(null);
+    },
+  });
+  const { mutate: DeleteSkill } = useMutation({
+    mutationFn: DeleteUserProfileCV,
+    onSuccess: () => {
+      // Invalidate and refetch the cache to ensure the UI is updated immediately
+      queryClient.invalidateQueries({
+        queryKey: ["UserProfile"],
+        refetchType: "active", 
+      });
+      Alert.alert("SkillSet Details Deleted Successfully");
+      setDeletingId(null);
+    },
+    onError: () => {
+      Alert.alert("Failed to delete the skill set");
+      setDeletingId(null);
+    },
+  });
+
+  const onDeleteExp = (id: number) => {
+    setDeletingIdExp(id);
+    DeleteExpDetails({ id: id });
+  };
+  const onDeleteSkill = (id: number) => {
+    setDeletingIdSkill(id);
+    DeleteSkill({
+      data: {
+        userId: Number(UserId),
+        skillSetId: id,
+        proficiencyLevel: "",
+      },
+    });
+  };
+  const onDelete = (id: number) => {
+    setDeletingId(id);
+    mutate({ id: id });
+  };
+
+  const { data: Education } = useQuery({
+    queryKey: ["EducationDetails"],
+    queryFn: ({ signal }) => fetchEducationDetails({ signal: signal }),
+    staleTime: 5000,
+  });
+  const { data: ExperienceData } = useQuery({
+    queryKey: ["ExperienceDetails"],
+    queryFn: ({ signal }) => fetchExperienceDetails({ signal: signal }),
+    staleTime: 5000,
+  });
+
+  const EducationData = Education?.EducationDetails;
+  const ExperienceDatas = ExperienceData?.ExperienceDetails;
+
+  const handleNavigateEduDetails = (item: EducationDetail) => {
+    navigation.navigate("EducationDetailsEdit", { item });
+  };
+  const handleNavigateExpDetails = (item: ExperienceDetail) => {
+    navigation.navigate("ExperienceDetailsEdit", { experience: item });
+  };
+
+  useEffect(() => {
     InteractionManager.runAfterInteractions(() => {
-      if (route.params?.scrollToSection === "WorkingExperience" && workingExperienceRef.current) {
+      if (
+        route.params?.scrollToSection === "WorkingExperience" &&
+        workingExperienceRef.current
+      ) {
         workingExperienceRef.current.measureInWindow((x, y, width, height) => {
           if (scrollViewRef.current) {
             scrollViewRef.current.scrollTo({ y: y, animated: true });
           }
         });
-      } else if (route.params?.scrollToSection === "Skills" && SkillsRef.current) {
+      } else if (
+        route.params?.scrollToSection === "Skills" &&
+        SkillsRef.current
+      ) {
         SkillsRef.current.measureInWindow((x, y, width, height) => {
           if (scrollViewRef.current) {
             scrollViewRef.current.scrollTo({ y: y, animated: true });
           }
         });
-      } else if (route.params?.scrollToSection === "Education" && EducationRef.current) {
+      } else if (
+        route.params?.scrollToSection === "Education" &&
+        EducationRef.current
+      ) {
         EducationRef.current.measureInWindow((x, y, width, height) => {
           if (scrollViewRef.current) {
             scrollViewRef.current.scrollTo({ y: y, animated: true });
@@ -153,6 +302,23 @@ export default function GerneralInfo({ navigation, route }: any) {
           </View>
           <View style={styles.main1} ref={workingExperienceRef}>
             <Text style={styles.title}>Working Experience</Text>
+            {ExperienceDatas && ExperienceDatas.length > 0 ? (
+              <FlatList
+                data={ExperienceDatas}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => (
+                  <ExperienceCard
+                    onClick={handleNavigateExpDetails}
+                    item={item}
+                    onDelete={onDeleteExp}
+                    deletingId={deletingIdExp}
+                    setDeletingId={setDeletingIdExp}
+                  />
+                )}
+              />
+            ) : (
+              <Text>Update Your Experience Details</Text>
+            )}
             <TouchableOpacity
               style={styles.button}
               onPress={() => navigation.navigate("Experience")}
@@ -176,6 +342,19 @@ export default function GerneralInfo({ navigation, route }: any) {
           </View>
           <View style={styles.main1} ref={SkillsRef}>
             <Text style={styles.title}>Technical Skill</Text>
+            <FlatList
+              data={UserProfileData?.skillSets}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => (
+                <SkillCard
+                  // onClick={handleNavigateExpDetails}
+                  item={item}
+                  onDelete={onDeleteSkill}
+                  deletingId={deletingIdSkill}
+                  setDeletingId={setDeletingIdSkill}
+                />
+              )}
+            />
             <TouchableOpacity
               style={styles.button}
               onPress={() => navigation.navigate("Skills")}
@@ -197,8 +376,26 @@ export default function GerneralInfo({ navigation, route }: any) {
               </View>
             </TouchableOpacity>
           </View>
-          <View style={styles.main1} ref={EducationRef}> 
+          <View style={styles.main1} ref={EducationRef}>
             <Text style={styles.title}>Education</Text>
+            {EducationData && EducationData.length > 0 ? (
+              <FlatList
+                data={EducationData}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => (
+                  <EducationCard
+                    onClick={handleNavigateEduDetails}
+                    item={item}
+                    onDelete={onDelete}
+                    deletingId={deletingId}
+                    setDeletingId={setDeletingId}
+                  />
+                )}
+              />
+            ) : (
+              <Text>Update Your Education Details</Text>
+            )}
+
             <TouchableOpacity
               style={styles.button}
               onPress={() => navigation.navigate("Education")}
@@ -286,6 +483,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  educationItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 10,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    width: "100%",
+  },
+  textContainer: {
+    flexDirection: "column",
+  },
+  schoolName: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  degree: {
+    fontSize: 14,
+    color: "#666",
+  },
+  dates: {
+    fontSize: 12,
+    color: "#888",
+  },
 });
 
 const pickerSelectStyles = StyleSheet.create({
@@ -310,5 +534,31 @@ const pickerSelectStyles = StyleSheet.create({
     color: "black",
 
     // paddingRight: 30,
+  },
+  educationItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 10,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#ddd",
+  },
+  textContainer: {
+    flexDirection: "column",
+  },
+  schoolName: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  degree: {
+    fontSize: 14,
+    color: "#666",
+  },
+  dates: {
+    fontSize: 12,
+    color: "#888",
   },
 });

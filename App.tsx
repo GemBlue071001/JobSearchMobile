@@ -21,6 +21,8 @@ import Apply from "./screensModal/Apply";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./Services/mainService";
 import ApplyComplete from "./screensModal/ApplyComplete";
+import EducationDetailsEdit from "./screensModal/EducationDetails";
+import ExperienceDetailsEdit from "./screensModal/ExperienceDetails";
 
 export default function App() {
   const Stack = createStackNavigator();
@@ -62,6 +64,11 @@ export default function App() {
           component={Experience}
           options={{ presentation: "modal" }}
         />
+          <Stack.Screen
+          name="ExperienceDetailsEdit"
+          component={ExperienceDetailsEdit}
+          options={{ presentation: "modal" }}
+        />
         <Stack.Screen
           name="Skills"
           component={Skills}
@@ -70,6 +77,11 @@ export default function App() {
         <Stack.Screen
           name="Education"
           component={Education}
+          options={{ presentation: "modal" }}
+        />
+         <Stack.Screen
+          name="EducationDetailsEdit"
+          component={EducationDetailsEdit}
           options={{ presentation: "modal" }}
         />
         <Stack.Screen
