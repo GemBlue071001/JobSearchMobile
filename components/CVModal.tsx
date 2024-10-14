@@ -1,21 +1,15 @@
 import React from "react";
-import {
-  View,
-  Modal,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-} from "react-native";
+import { View, Modal, Text, TouchableOpacity, StyleSheet } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons"; // Import the icon library
 
 const CVModal = ({
   modalVisible,
   setModalVisible,
-  navigation
+  navigation,
 }: {
   modalVisible: boolean;
   setModalVisible: (visible: boolean) => void;
-  navigation:any
+  navigation: any;
 }) => {
   return (
     <Modal
@@ -30,7 +24,6 @@ const CVModal = ({
         onPressOut={() => setModalVisible(false)}
       >
         <View style={styles.modalView}>
-    
           <TouchableOpacity
             style={styles.closeIcon}
             onPress={() => setModalVisible(false)}
@@ -44,13 +37,17 @@ const CVModal = ({
             platform, we will suggest you the most suitable jobs.
           </Text>
 
-   
-          <TouchableOpacity style={styles.createCVButton}   onPress={() => navigation.navigate("Information")}>
+          <TouchableOpacity
+            style={styles.createCVButton}
+            onPress={() => navigation.navigate("Information")}
+          >
             <Text style={styles.buttonText}>CREATE NEW CV</Text>
           </TouchableOpacity>
 
-    
-          <TouchableOpacity style={styles.uploadCVButton}>
+          <TouchableOpacity
+            style={styles.uploadCVButton}
+            onPress={() => navigation.navigate("UploadCV")}
+          >
             <Text style={styles.uploadButtonText}>UPLOAD YOUR CV</Text>
           </TouchableOpacity>
         </View>

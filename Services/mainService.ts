@@ -76,5 +76,11 @@ export const apiLinks = {
   UserProfile:{
     GET: `${baseURL}/User/Profile`,
   
+  },
+
+  CompanyFollow:{
+    POST: `${baseURL}/FollowCompany`,
+    GET:`${baseURL}/FollowCompany`,
+    DELETE:`${baseURL}/FollowCompany`,
   }
 };

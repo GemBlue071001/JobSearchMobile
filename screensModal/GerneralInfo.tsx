@@ -222,7 +222,7 @@ export default function GerneralInfo({ navigation, route }: any) {
     <View>
       <ScrollView ref={scrollViewRef}>
         <View style={styles.main}>
-          <View style={styles.main1}>
+          {/* <View style={styles.main1}>
             <Text style={styles.title}>Profile Information</Text>
             <TextInputComponent
               name="Full Name"
@@ -299,7 +299,7 @@ export default function GerneralInfo({ navigation, route }: any) {
               setText={setGithub}
               text={github}
             />
-          </View>
+          </View> */}
           <View style={styles.main1} ref={workingExperienceRef}>
             <Text style={styles.title}>Working Experience</Text>
             {ExperienceDatas && ExperienceDatas.length > 0 ? (

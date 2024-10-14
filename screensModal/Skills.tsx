@@ -53,6 +53,7 @@ export default function Skills({ navigation }: any) {
         queryKey: ["UserProfile"],
         refetchType: "active",
       });
+      navigation.navigate("General Information");
       Alert.alert("SkillSet Details Saved Successfully");
     },
     onError: () => {
@@ -182,7 +183,7 @@ export default function Skills({ navigation }: any) {
               <View style={{ flexDirection: "column", flex: 1 }}>
                 <Text style={styles.skillName}>{skill.name}</Text>
                 <Text style={styles.skillShorthand}>{skill.shorthand}</Text>
-                <Text style={styles.skillDescription}>{skill.description}</Text>
+                <Text style={styles.skillDescription}>{(skill.description).replace(/<\/?[^>]+(>|$)/g, '')}</Text>
               </View>
               {/* Checkbox for selecting skills */}
               <TouchableOpacity

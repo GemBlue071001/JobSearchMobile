@@ -1,6 +1,7 @@
 // import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Dimensions,
   Image,
   ScrollView,
@@ -12,12 +13,18 @@ import {
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { jobData } from "../mock/JobData";
 import CardJobs from "../components/CardJobs";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { fetchCompaniesById } from "../Services/CompanyService/GetCompanyById";
 import RenderHTML from "react-native-render-html";
 import { fetchCompanies } from "../Services/CompanyService/GetCompanies";
 import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
 import { GetBusinessStream } from "../Services/BusinessStreamService/GetBusinessStream";
+import { PostFollowCompany } from "../Services/FollowCompany/PostFollowCompany";
+import { queryClient } from "../Services/mainService";
+import { DeleteFollowCompany } from "../Services/FollowCompany/DeleteFollowCompany";
+import { GetFollowCompany } from "../Services/FollowCompany/GetFollowCompany";
+import AuthModal from "../components/AuthModal";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 // import { companyData } from "../mock/CompanyData";
 type InfoLineProps = {
   icon: string;
@@ -74,10 +81,69 @@ export default function CompanyDetail({ route, navigation }: any) {
   const BusinessStreamDatainCompany = BusinessStreamData?.find(
     (item) => detail?.businessStream?.id === item.id
   );
+
+  const { mutate } = useMutation({
+    mutationFn: PostFollowCompany,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["FollowCompany"],
+        refetchType: "active",
+      });
+      Alert.alert(`Follow ${companyDataa?.companyName} Successfully`);
+    },
+    onError: () => {
+      Alert.alert(`Failed to Follow ${companyDataa?.companyName} `);
+    },
+  });
+  const { mutate: Unfollow } = useMutation({
+    mutationFn: DeleteFollowCompany,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["FollowCompany"],
+        refetchType: "active",
+      });
+      Alert.alert(`Unfollow ${companyDataa?.companyName} Successfully`);
+    },
+    // onError: () => {
+    //   Alert.alert(`Failed to UnFollow ${companyDataa?.companyName} `);
+    // },
+  });
+  const { data: FollowCompany } = useQuery({
+    queryKey: ["FollowCompany"],
+    queryFn: ({ signal }) => GetFollowCompany({ signal }),
+    staleTime: 5000,
+  });
+  const FollowCompanydata = FollowCompany?.Companies;
+  const [modalVisibleLogin, setModalVisibleLogin] = useState<boolean>(false);
+  const haveFollow = FollowCompanydata?.find((item) => item.id === Number(id));
+  const handleFollow =async () => {
+    const Auth = await AsyncStorage.getItem("Auth");
+    if (!Auth) {
+      setModalVisibleLogin(true);
+    }
+    mutate({
+      data: {
+        companyId: Number(id),
+      },
+    });
+  };
+
+  const handleUnFollow =async () => {
+    const Auth = await AsyncStorage.getItem("Auth");
+    if (!Auth) {
+      setModalVisibleLogin(true);
+    }
+    Unfollow({ id: Number(haveFollow?.id) });
+  };
+
   const renderContent = () => {
     if (selectedTab === "about") {
       return (
         <View style={styles.card}>
+           <AuthModal
+            visible={modalVisibleLogin}
+            onClose={() => setModalVisibleLogin(false)}
+          />
           <Text style={styles.cardTitle}>Introduction</Text>
           <Text style={styles.paragraph}>
             {companyDataa?.companyDescription ? (
@@ -163,7 +229,64 @@ export default function CompanyDetail({ route, navigation }: any) {
               <View
                 style={{ paddingHorizontal: 15, width: "100%", marginTop: 10 }}
               >
-                <TouchableOpacity style={styles.follow}>
+                {haveFollow ? (
+                  <TouchableOpacity
+                    style={[styles.follow, { backgroundColor: "#FF4500" }]}
+                    onPress={handleUnFollow}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 10,
+                      }}
+                    >
+                      <Text
+                        style={{ color: "white", fontSize: 20, lineHeight: 30 }}
+                      >
+                        UnFollowed
+                      </Text>
+                      <Icon
+                        name="notifications-none"
+                        size={20}
+                        style={{ marginTop: 2 }}
+                        color="white"
+                      />
+                    </View>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.follow}
+                    onPress={handleFollow}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 10,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: "#FF4500",
+                          fontSize: 20,
+                          lineHeight: 30,
+                        }}
+                      >
+                        Follow
+                      </Text>
+                      <Icon
+                        name="notifications-none"
+                        size={20}
+                        style={{ marginTop: 2 }}
+                        color="#FF4500"
+                      />
+                    </View>
+                  </TouchableOpacity>
+                )}
+                {/* <TouchableOpacity style={styles.follow} onPress={handleFollow}>
                   <View
                     style={{
                       flexDirection: "row",
@@ -184,7 +307,7 @@ export default function CompanyDetail({ route, navigation }: any) {
                       color="#FF4500"
                     />
                   </View>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </View>
             </View>
 
@@ -222,8 +345,8 @@ export default function CompanyDetail({ route, navigation }: any) {
               <View style={styles.tagList}>
                 <Icon name="folder" size={30} color="#808080" />
                 <View style={styles.tagContainer}>
-                  <Text style={styles.tagText} >
-                  {BusinessStreamDatainCompany?.businessStreamName}
+                  <Text style={styles.tagText}>
+                    {BusinessStreamDatainCompany?.businessStreamName}
                   </Text>
                 </View>
               </View>
@@ -298,13 +421,13 @@ export default function CompanyDetail({ route, navigation }: any) {
 const styles = StyleSheet.create({
   scrollViewContainer: {
     paddingBottom: 20,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: "#f0f0f0",
   },
   main: {
     flexDirection: "column",
     width: "100%",
     position: "relative",
-    backgroundColor: 'white',
+    backgroundColor: "white",
   },
   img: {
     width: "100%",
@@ -317,7 +440,6 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     paddingBottom: 20,
     elevation: 5,
-
   },
   main2: {
     position: "relative",

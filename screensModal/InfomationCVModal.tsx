@@ -8,7 +8,7 @@ export default function InfomationCVModal({ navigation }: any) {
         <Text style={{ fontSize: 20, lineHeight: 30, fontWeight: "bold" }}>
           General Information
         </Text>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.item}
           onPress={() => navigation.navigate("General Information")}
         >
@@ -26,7 +26,7 @@ export default function InfomationCVModal({ navigation }: any) {
               style={{ marginLeft: "auto" }}
             />
           </View>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <TouchableOpacity
           style={styles.item}
           onPress={() =>
@@ -96,7 +96,7 @@ export default function InfomationCVModal({ navigation }: any) {
             />
           </View>
         </TouchableOpacity>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.item}
           onPress={() => navigation.navigate("General Information")}
         >
@@ -114,7 +114,7 @@ export default function InfomationCVModal({ navigation }: any) {
               style={{ marginLeft: "auto" }}
             />
           </View>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
     </View>
   );

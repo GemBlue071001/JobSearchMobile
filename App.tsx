@@ -23,97 +23,114 @@ import { queryClient } from "./Services/mainService";
 import ApplyComplete from "./screensModal/ApplyComplete";
 import EducationDetailsEdit from "./screensModal/EducationDetails";
 import ExperienceDetailsEdit from "./screensModal/ExperienceDetails";
+import ResumeScreen from "./screensModal/CVModal";
+import UploadCVScreen from "./screensModal/UploadCV";
+
+import { createDrawerNavigator } from "@react-navigation/drawer";
 
 export default function App() {
   const Stack = createStackNavigator();
 
   return (
     <QueryClientProvider client={queryClient}>
-    <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen
-          name="BottomTabs"
-          component={BottomNav}
-          // options={{
-          //   header: () => <MainHeader />,
-          // }}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="CompanyDetail"
-          component={CompanyDetail}
-          options={{ presentation: "modal" }}
-        />
-        <Stack.Screen
-          name="JobDetail"
-          component={JobDetail}
-          options={{ presentation: "modal" }}
-        />
-        <Stack.Screen
-          name="Information"
-          component={InfomationCVModal}
-          options={{ presentation: "modal" }}
-        />
-        <Stack.Screen
-          name="General Information"
-          component={GerneralInfo}
-          options={{ presentation: "modal" }}
-        />
-        <Stack.Screen
-          name="Experience"
-          component={Experience}
-          options={{ presentation: "modal" }}
-        />
+      <NavigationContainer>
+        <Stack.Navigator
+        
+        >
+       
           <Stack.Screen
-          name="ExperienceDetailsEdit"
-          component={ExperienceDetailsEdit}
-          options={{ presentation: "modal" }}
-        />
-        <Stack.Screen
-          name="Skills"
-          component={Skills}
-          options={{ presentation: "modal" }}
-        />
-        <Stack.Screen
-          name="Education"
-          component={Education}
-          options={{ presentation: "modal" }}
-        />
-         <Stack.Screen
-          name="EducationDetailsEdit"
-          component={EducationDetailsEdit}
-          options={{ presentation: "modal" }}
-        />
-        <Stack.Screen
-          name="FormSearch"
-          component={FormSearch}
-          options={{ presentation: "modal", header: () => <SeacrHeader /> }}
-        />
-        <Stack.Screen
-          name="SearchResults"
-          component={SearchResults}
-          options={({ route }) => ({
-            presentation: "modal",
-            header: () => <SeacrHeaderr />,
-          })}
-        />
-        <Stack.Screen
-          name="Notification"
-          component={Notification}
-          options={{ presentation: "modal" }}
-        />
-        <Stack.Screen
-          name="Apply"
-          component={Apply}
-          options={{ presentation: "modal" }}
-        /> 
-       <Stack.Screen
-        name="ApplyComplete"
-        component={ApplyComplete}
-        options={{ presentation: "modal" }}
-      />
-      </Stack.Navigator>
-    </NavigationContainer>
+            name="BottomTabs"
+            component={BottomNav}
+            // options={{
+            //   header: () => <MainHeader />,
+            // }}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="CompanyDetail"
+            component={CompanyDetail}
+            options={{ presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="JobDetail"
+            component={JobDetail}
+            options={{ presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="Information"
+            component={InfomationCVModal}
+            options={{ presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="General Information"
+            component={GerneralInfo}
+            options={{ presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="CVModal"
+            component={ResumeScreen}
+            options={{ presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="UploadCV"
+            component={UploadCVScreen}
+            options={{ presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="Experience"
+            component={Experience}
+            options={{ presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="ExperienceDetailsEdit"
+            component={ExperienceDetailsEdit}
+            options={{ presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="Skills"
+            component={Skills}
+            options={{ presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="Education"
+            component={Education}
+            options={{ presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="EducationDetailsEdit"
+            component={EducationDetailsEdit}
+            options={{ presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="FormSearch"
+            component={FormSearch}
+            options={{ presentation: "modal", header: () => <SeacrHeader /> }}
+          />
+          <Stack.Screen
+            name="SearchResults"
+            component={SearchResults}
+            options={({ route }) => ({
+              presentation: "modal",
+              header: () => <SeacrHeaderr />,
+            })}
+          />
+          <Stack.Screen
+            name="Notification"
+            component={Notification}
+            options={{ presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="Apply"
+            component={Apply}
+            options={{ presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="ApplyComplete"
+            component={ApplyComplete}
+            options={{ presentation: "modal" }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
     </QueryClientProvider>
   );
 }

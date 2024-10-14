@@ -1,8 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
-import { View, Image, TouchableOpacity, Text, StyleSheet } from "react-native";
+import { View, Image, TouchableOpacity, Text, StyleSheet, Alert } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
+import { PostFollowCompany } from "../Services/FollowCompany/PostFollowCompany";
+import { queryClient } from "../Services/mainService";
+import { DeleteFollowCompany } from "../Services/FollowCompany/DeleteFollowCompany";
+import { GetFollowCompany } from "../Services/FollowCompany/GetFollowCompany";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import AuthModal from "./AuthModal";
 
 const SkillSet = ["PHP", "Front End", "Java", "End", "Javascript"];
 
@@ -77,6 +83,58 @@ export default function CardCompany({ data, navigation }: CardEmployerProps) {
     staleTime: 5000,
   });
   const JobPostsdata = JobPosts?.JobPosts;
+
+  const { mutate } = useMutation({
+    mutationFn: PostFollowCompany,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["FollowCompany"],
+        refetchType: "active",
+      });
+      Alert.alert(`Follow ${data?.companyName} Successfully`);
+    },
+    // onError: () => {
+    //   Alert.alert(`Failed to Follow ${data?.companyName} `);
+    // },
+  });
+  const { mutate: Unfollow } = useMutation({
+    mutationFn: DeleteFollowCompany,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["FollowCompany"],
+        refetchType: "active",
+      });
+      Alert.alert(`Unfollow ${data?.companyName} Successfully`);
+    },
+    onError: () => {
+      Alert.alert(`Failed to UnFollow ${data?.companyName} `);
+    },
+  });
+  const { data: FollowCompany } = useQuery({
+    queryKey: ["FollowCompany"],
+    queryFn: ({ signal }) => GetFollowCompany({ signal }),
+    staleTime: 5000,
+  });
+  const FollowCompanydata = FollowCompany?.Companies;
+
+  const haveFollow = FollowCompanydata?.find(
+    (item) => item.id === Number(data.id)
+  );
+  const [modalVisibleLogin, setModalVisibleLogin] = useState<boolean>(false);
+  const handleFollow = async() => {
+    const Auth = await AsyncStorage.getItem("Auth");
+    if (!Auth) {
+      setModalVisibleLogin(true);
+    }
+    mutate({
+      data: {
+        companyId: Number(data.id),
+      },
+    });
+  };
+  const handleUnFollow = () => {
+    Unfollow({ id: Number(haveFollow?.id) });
+  };
   return (
     <View style={styles.card}>
       <Image
@@ -136,17 +194,30 @@ export default function CardCompany({ data, navigation }: CardEmployerProps) {
               {data.businessStream.businessStreamName},
             </Text>
           </View>
+          <AuthModal
+            visible={modalVisibleLogin}
+            onClose={() => setModalVisibleLogin(false)}
+          />
         </View>
       </View>
       <View style={styles.icon}>
-        {/* Nút follow/unfollow */}
-        <TouchableOpacity onPress={() => setFollow(!follow)}>
-          <Icon
-            name={follow ? "bookmark" : "bookmark-border"}
-            size={30}
-            color="#808080"
-          />
-        </TouchableOpacity>
+      {haveFollow?.id === data.id ? (
+              <TouchableOpacity onPress={handleUnFollow}>
+                <Icon
+                  name={"bookmark" }
+                  size={30}
+                  color="#808080"
+                /> 
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={handleFollow}>
+                <Icon
+                  name={"bookmark-border"}
+                  size={30}
+                  color="#808080"
+                />
+              </TouchableOpacity>
+            )}
       </View>
     </View>
   );

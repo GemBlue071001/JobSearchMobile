@@ -23,7 +23,7 @@ const SkillCard = ({ item, onDelete, setDeletingId, deletingId, onClick }: Props
     <TouchableOpacity style={styles.educationItem} >
       <View style={styles.textContainer}>
         <Text style={styles.schoolName}>Skill Name:{" "} {item.name}</Text>
-        <Text style={styles.degree}>Skill Description:{" "}{item.description}</Text>
+        <Text style={styles.degree}>Skill Description:{" "}{(item.description).replace(/<\/?[^>]+(>|$)/g, '')}</Text>
         {/* <Text style={styles.dates}>
           {new Date(item.startDate).toLocaleString("en", {
             month: "short",

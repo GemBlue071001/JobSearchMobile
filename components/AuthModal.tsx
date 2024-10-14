@@ -14,6 +14,8 @@ import { jwtDecode, JwtPayload } from "jwt-decode";
 import { useRoute } from "@react-navigation/native";
 import { register } from "../Services/AuthService/Register";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { queryClient } from "../Services/mainService";
+import { GetUserProfile } from "../Services/UserProfileService/UserProfile";
 
 interface CustomJwtPayload {
   Role: string;
@@ -144,6 +146,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
           password: password,
         },
       });
+   
     } catch (error) {
       Alert.alert("Error", "Something went wrong");
     }

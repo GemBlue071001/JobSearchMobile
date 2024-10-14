@@ -110,7 +110,7 @@ export default function Apply({ route,navigation }: any) {
 
   const dataCVS = CVdata?.CVs || [];
 
-  const { mutate } = useMutation({
+  const { mutate,isPending } = useMutation({
     mutationFn: PostCVs,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["CVs"] });

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  Alert,
+  Linking,
 } from "react-native";
 import ProfileCard from "../components/ProfileCard"; // Import the ProfileCard component
 import FullNameModal from "../components/FullNameModal"; // Import the FullNameModal component
@@ -15,20 +17,25 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import { jobData } from "../mock/JobData";
 import AuthModal from "../components/AuthModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { GetJobActivity } from "../Services/UserJobPostActivity/GetUserJobPostActivity";
 import { fetchCompanies } from "../Services/CompanyService/GetCompanies";
 import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
-
+import { GetUserProfile } from "../Services/UserProfileService/UserProfile";
+import { MaterialIcons } from "@expo/vector-icons";
+import { fetchCVs } from "../Services/CVService/GetCV";
+import { DeleteCV } from "../Services/CVService/DeleteCV";
+import { queryClient } from "../Services/mainService";
 export default function PersonalScreen({ navigation }: any) {
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [modalVisibleCV, setModalVisibleCV] = useState<boolean>(false);
   const [modalVisibleLogin, setModalVisibleLogin] = useState<boolean>(false);
-  const [fullName, setFullName] = useState<string>("Thúc Minh");
+
   const [address, setAddress] = useState<string>("");
   const [phoneNumber, setPhoneNumber] = useState<string>("");
   const [selectedTab, setSelectedTab] = useState("Applied");
   const [follow, setFollow] = useState<boolean>(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const formatDateTime = (dateString: string | undefined) => {
     if (dateString) {
       const date = new Date(dateString);
@@ -44,7 +51,49 @@ export default function PersonalScreen({ navigation }: any) {
     // Return a fallback value if dateString is undefined
     return "Invalid date";
   };
-  // navigation.navigate('B', { from: 'Account' });
+  const [UserId, setUserId] = useState<string | null>(null);
+  const [Auth, setAuth] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const id = await AsyncStorage.getItem("userId");
+      const Auth = await AsyncStorage.getItem("Auth");
+      setAuth(Auth);
+      setUserId(id);
+    };
+
+    fetchUserId();
+  }, []);
+  const { data: UserProfile } = useQuery({
+    queryKey: ["UserProfile"],
+    queryFn: ({ signal }) =>
+      GetUserProfile({ id: Number(UserId), signal: signal }),
+    staleTime: 10000, // Cache the data for 10 seconds
+  });
+
+  const { data } = useQuery({
+    queryKey: ["CVs"],
+    queryFn: ({ signal }) => fetchCVs({ signal }),
+    staleTime: 1000,
+  });
+  const handlePreview = (url: string) => {
+    if (url) {
+      Linking.openURL(url).catch((err) => {
+        Alert.alert("Error", "Failed to open the file.");
+        console.error("Failed to open URL:", err);
+      });
+    } else {
+      Alert.alert("No URL", "This file doesn't have a valid URL.");
+    }
+  };
+
+  const dataCVS = data?.CVs || [];
+  const UserProfileData = UserProfile?.UserProfiles;
+  const [fullName, setFullName] = useState<string>(
+    UserProfileData
+      ? `${UserProfileData.firstName} ${UserProfileData.lastName}`
+      : ""
+  );
   const renderContent = () => {
     if (selectedTab === "Applied") {
       return (
@@ -57,31 +106,40 @@ export default function PersonalScreen({ navigation }: any) {
               (item) => item.id === PendingJobApplied?.companyId
             );
             return (
-
-              <TouchableOpacity style={styles.jobCard} key={activity.id}    onPress={() => navigation.navigate("JobDetail", { id: activity?.jobPostId })}>
-                  <View style={styles.maincompany}>
-          <View style={styles.maincom1}>
-            <Image
-              source={{
-                uri: companys && companys.imageUrl
-              }}
-              style={styles.image}
-            />
-            <Text style={styles.text} numberOfLines={2} ellipsizeMode="tail">
-              {companys?.companyName}
-            </Text>
-          </View>
-          <View style={{ paddingLeft: 20, marginLeft: "auto" }}>
-            {/* Nút follow/unfollow */}
-            <TouchableOpacity onPress={() => setFollow(!follow)}>
-              <Icon
-                name={follow ? "bookmark" : "bookmark-border"}
-                size={30}
-                color="#808080"
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
+              <TouchableOpacity
+                style={styles.jobCard}
+                key={activity.id}
+                onPress={() =>
+                  navigation.navigate("JobDetail", { id: activity?.jobPostId })
+                }
+              >
+                <View style={styles.maincompany}>
+                  <View style={styles.maincom1}>
+                    <Image
+                      source={{
+                        uri: companys && companys.imageUrl,
+                      }}
+                      style={styles.image}
+                    />
+                    <Text
+                      style={styles.text}
+                      numberOfLines={2}
+                      ellipsizeMode="tail"
+                    >
+                      {companys?.companyName}
+                    </Text>
+                  </View>
+                  <View style={{ paddingLeft: 20, marginLeft: "auto" }}>
+                    {/* Nút follow/unfollow */}
+                    <TouchableOpacity onPress={() => setFollow(!follow)}>
+                      <Icon
+                        name={follow ? "bookmark" : "bookmark-border"}
+                        size={30}
+                        color="#808080"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
                 <Text style={styles.jobTitle}>{activity.jobTitle}</Text>
                 <View style={styles.iconRow}>
                   <Icon name="place" size={20} color="#777" />
@@ -136,7 +194,8 @@ export default function PersonalScreen({ navigation }: any) {
                       marginHorizontal: 5,
                     }}
                   >
-                    •</Text>
+                    •
+                  </Text>
 
                   <Text style={{ color: "#777", fontSize: 12, lineHeight: 15 }}>
                     Status: {activity.status}
@@ -178,6 +237,13 @@ export default function PersonalScreen({ navigation }: any) {
     }
     // setModalVisibleLogin(true);
   };
+  const handleNavigateInfo = () => {
+    navigation.navigate("Information");
+  };
+
+  const handleNavigateCVProfile = () => {
+    navigation.navigate("CVModal");
+  };
   const {
     data: JobPosts,
     isLoading: isJobLoading,
@@ -207,6 +273,26 @@ export default function PersonalScreen({ navigation }: any) {
   const JobPostsdata = JobPosts?.JobPosts;
   const Companiesdata = Company?.Companies;
   const JobPostActivitydata = JobPostActivity?.UserJobActivitys;
+  const { mutate: deleteCV } = useMutation({
+    mutationFn: DeleteCV,
+    onSuccess: () => {
+      // Invalidate and refetch the cache to ensure the UI is updated immediately
+      queryClient.invalidateQueries({
+        queryKey: ["CVs"],
+        refetchType: "active", // Ensure an active refetch
+      });
+      Alert.alert("CVs Details Deleted Successfully");
+      setDeletingId(null);
+    },
+    onError: () => {
+      Alert.alert("Failed to delete the CVs");
+      setDeletingId(null);
+    },
+  });
+  const handleDeleteCV = (id: number) => {
+    setDeletingId(id);
+    deleteCV({ id: id });
+  };
   return (
     <ScrollView>
       <View style={styles.main}>
@@ -218,22 +304,76 @@ export default function PersonalScreen({ navigation }: any) {
           <ProfileCard fullName={fullName} setModalVisible={setModalVisible} />
 
           {/* Full Name Modal */}
-          <FullNameModal
-            modalVisible={modalVisible}
-            setModalVisible={setModalVisible}
-            fullName={fullName}
-            address={address}
-            setAddress={setAddress}
-            phoneNumber={phoneNumber}
-            setPhoneNumber={setPhoneNumber}
-            setFullName={setFullName}
-          />
+          {Auth ? (
+            <FullNameModal
+              modalVisible={modalVisible}
+              setModalVisible={setModalVisible}
+              fullName={fullName}
+              address={address}
+              setAddress={setAddress}
+              phoneNumber={phoneNumber}
+              setPhoneNumber={setPhoneNumber}
+              setFullName={setFullName}
+            />
+          ) : undefined}
         </View>
 
         <View style={styles.main2}>
           <Text style={styles.title}>CV/Cover Letter</Text>
 
           <Text>Would you like you to have a job that suits you</Text>
+          {Auth && UserId && (
+            <View style={styles.cardProfile}>
+              <Text style={styles.titleProfile}>
+                {UserProfileData?.firstName} {UserProfileData?.lastName} CV
+                Profile
+              </Text>
+              {/* <Text style={styles.date}>13/10/2024 22:24</Text> */}
+              <Text style={styles.subtitle}>Created on our System</Text>
+
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                  style={styles.buttonProfile}
+                  onPress={handleNavigateCVProfile}
+                >
+                  <Text style={styles.buttonTextProfile}>PREVIEW</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.buttonProfile}
+                  onPress={handleNavigateInfo}
+                >
+                  <Text style={styles.buttonTextProfile}>EDIT</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+          {Auth &&
+            UserId &&
+            dataCVS.map((file) => (
+              <View style={styles.fileItemContainer}>
+                <View style={styles.fileInfo}>
+                  <Text style={styles.fileName}>{file.name}</Text>
+                  {deletingId === file.id ? (
+                    <Text>Please wait a second...</Text>
+                  ) : (
+                    <TouchableOpacity onPress={() => handleDeleteCV(file.id)}>
+                      <MaterialIcons name="delete" size={24} color="red" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+                {/* <Text style={styles.fileDetails}>
+                    {file.uploadTime} {"\n"}Uploaded from {file.source}
+                  </Text> */}
+
+                <TouchableOpacity
+                  style={styles.previewButton}
+                  onPress={() => handlePreview(file.url)}
+                >
+                  <Text style={styles.previewButtonText}>PREVIEW</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+
           <TouchableOpacity
             style={styles.update}
             // onPress={() => setModalVisibleCV(true)}
@@ -504,5 +644,90 @@ const styles = StyleSheet.create({
     lineHeight: 25,
     marginTop: 5,
     marginBottom: 5,
+  },
+  cardProfile: {
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 10,
+    elevation: 3, // For shadow on Android
+    shadowColor: "#000", // For shadow on iOS
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 1, height: 1 },
+    shadowRadius: 5,
+    marginVertical: 10,
+    width: "90%",
+    alignSelf: "center",
+  },
+  titleProfile: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  date: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "#999",
+    marginBottom: 16,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  buttonProfile: {
+    backgroundColor: "#f0f0f0",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  buttonTextProfile: {
+    fontSize: 14,
+    color: "#333",
+    fontWeight: "600",
+  },
+  fileItemContainer: {
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 8,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    marginBottom: 16,
+    elevation: 3, // Shadow on Android
+    shadowColor: "#000", // Shadow on iOS
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 3,
+    width: "100%",
+  },
+  fileInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  fileName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    flex: 1,
+  },
+  fileDetails: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 16,
+  },
+  previewButton: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  previewButtonText: {
+    fontSize: 16,
+    color: "#555",
   },
 });
