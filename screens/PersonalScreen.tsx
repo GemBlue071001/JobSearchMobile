@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -26,6 +26,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { fetchCVs } from "../Services/CVService/GetCV";
 import { DeleteCV } from "../Services/CVService/DeleteCV";
 import { queryClient } from "../Services/mainService";
+import { useFocusEffect } from "@react-navigation/native";
 export default function PersonalScreen({ navigation }: any) {
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [modalVisibleCV, setModalVisibleCV] = useState<boolean>(false);
@@ -51,30 +52,38 @@ export default function PersonalScreen({ navigation }: any) {
     // Return a fallback value if dateString is undefined
     return "Invalid date";
   };
-  const [UserId, setUserId] = useState<string | null>(null);
-  const [Auth, setAuth] = useState<string | null>(null);
+  const [Auth, setAuth] = useState<string|null >("");
+  const [UserId, setUserId] = useState<string|null>("");
+  const [token,setToken]=useState<string|null>("")
+  console.log("tokenne",token)
+  console.log()
+  const fetchUserData = async () => {
+    const id = await AsyncStorage.getItem("userId");
+    const auth = await AsyncStorage.getItem("Auth");
+    const token = await AsyncStorage.getItem("token");
+    setToken(token)
+    setAuth(auth);
+    setUserId(id);
+  };
 
-  useEffect(() => {
-    const fetchUserId = async () => {
-      const id = await AsyncStorage.getItem("userId");
-      const Auth = await AsyncStorage.getItem("Auth");
-      setAuth(Auth);
-      setUserId(id);
-    };
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserData(); // Fetch Auth and UserId on focus
+     
+    }, [])
+  );
 
-    fetchUserId();
-  }, []);
   const { data: UserProfile } = useQuery({
     queryKey: ["UserProfile"],
     queryFn: ({ signal }) =>
       GetUserProfile({ id: Number(UserId), signal: signal }),
-    staleTime: 10000, // Cache the data for 10 seconds
+    enabled: !!UserId, // Only fetch if UserId is available
   });
-
   const { data } = useQuery({
     queryKey: ["CVs"],
     queryFn: ({ signal }) => fetchCVs({ signal }),
     staleTime: 1000,
+    enabled: !!Auth,
   });
   const handlePreview = (url: string) => {
     if (url) {
@@ -94,6 +103,73 @@ export default function PersonalScreen({ navigation }: any) {
       ? `${UserProfileData.firstName} ${UserProfileData.lastName}`
       : ""
   );
+  const handleAuth = async () => {
+    const Auth = await AsyncStorage.getItem("Auth");
+    if (!Auth) {
+      setModalVisibleLogin(true);
+      // console.log("okwqeqwe");
+    } else {
+      setModalVisibleCV(true);
+    }
+    // setModalVisibleLogin(true);
+  };
+  const handleNavigateInfo = () => {
+    navigation.navigate("Information");
+  };
+
+  const handleNavigateCVProfile = () => {
+    navigation.navigate("CVModal");
+  };
+  const {
+    data: JobPosts,
+    isLoading: isJobLoading,
+    isError: isJobError,
+  } = useQuery({
+    queryKey: ["JobPosts"],
+    queryFn: ({ signal }) => GetJobPost({ signal: signal }),
+    staleTime: 5000,
+  });
+
+  // Fetching Companies using React Query
+  const {
+    data: Company,
+    isLoading: isCompanyLoading,
+    isError: isCompanyError,
+  } = useQuery({
+    queryKey: ["Company"],
+    queryFn: ({ signal }) => fetchCompanies({ signal: signal }),
+    staleTime: 5000,
+  });
+
+  const { data: JobPostActivity } = useQuery({
+    queryKey: ["JobPostActivity"],
+    queryFn: ({ signal }) => GetJobActivity({ signal }),
+    staleTime: 5000,
+    enabled: !!UserId,
+  });
+  const JobPostsdata = JobPosts?.JobPosts;
+  const Companiesdata = Company?.Companies;
+  const JobPostActivitydata = JobPostActivity?.UserJobActivitys;
+  const { mutate: deleteCV } = useMutation({
+    mutationFn: DeleteCV,
+    onSuccess: () => {
+      // Invalidate and refetch the cache to ensure the UI is updated immediately
+      queryClient.invalidateQueries({
+        queryKey: ["CVs"],
+        refetchType: "active", // Ensure an active refetch
+      });
+      Alert.alert("CVs Details Deleted Successfully");
+      setDeletingId(null);
+    },
+    onError: () => {
+      Alert.alert("Failed to delete the CVs");
+      setDeletingId(null);
+    },
+  });
+  const handleDeleteCV = (id: number) => {
+    setDeletingId(id);
+    deleteCV({ id: id });
+  };
   const renderContent = () => {
     if (selectedTab === "Applied") {
       return (
@@ -228,83 +304,18 @@ export default function PersonalScreen({ navigation }: any) {
     }
   };
 
-  const handleAuth = async () => {
-    const Auth = await AsyncStorage.getItem("Auth");
-    if (!Auth) {
-      setModalVisibleLogin(true);
-    } else {
-      setModalVisibleCV(true);
-    }
-    // setModalVisibleLogin(true);
-  };
-  const handleNavigateInfo = () => {
-    navigation.navigate("Information");
-  };
-
-  const handleNavigateCVProfile = () => {
-    navigation.navigate("CVModal");
-  };
-  const {
-    data: JobPosts,
-    isLoading: isJobLoading,
-    isError: isJobError,
-  } = useQuery({
-    queryKey: ["JobPosts"],
-    queryFn: ({ signal }) => GetJobPost({ signal: signal }),
-    staleTime: 5000,
-  });
-
-  // Fetching Companies using React Query
-  const {
-    data: Company,
-    isLoading: isCompanyLoading,
-    isError: isCompanyError,
-  } = useQuery({
-    queryKey: ["Company"],
-    queryFn: ({ signal }) => fetchCompanies({ signal: signal }),
-    staleTime: 5000,
-  });
-
-  const { data: JobPostActivity } = useQuery({
-    queryKey: ["JobPostActivity"],
-    queryFn: ({ signal }) => GetJobActivity({ signal }),
-    staleTime: 5000,
-  });
-  const JobPostsdata = JobPosts?.JobPosts;
-  const Companiesdata = Company?.Companies;
-  const JobPostActivitydata = JobPostActivity?.UserJobActivitys;
-  const { mutate: deleteCV } = useMutation({
-    mutationFn: DeleteCV,
-    onSuccess: () => {
-      // Invalidate and refetch the cache to ensure the UI is updated immediately
-      queryClient.invalidateQueries({
-        queryKey: ["CVs"],
-        refetchType: "active", // Ensure an active refetch
-      });
-      Alert.alert("CVs Details Deleted Successfully");
-      setDeletingId(null);
-    },
-    onError: () => {
-      Alert.alert("Failed to delete the CVs");
-      setDeletingId(null);
-    },
-  });
-  const handleDeleteCV = (id: number) => {
-    setDeletingId(id);
-    deleteCV({ id: id });
-  };
   return (
     <ScrollView>
       <View style={styles.main}>
         <View style={styles.main1}>
-          <Text style={styles.title}>About me</Text>
+          <Text style={styles.title}>About me </Text>
           <Text> My personal details</Text>
 
           {/* Profile Card */}
           <ProfileCard fullName={fullName} setModalVisible={setModalVisible} />
 
           {/* Full Name Modal */}
-          {Auth ? (
+          {Auth && (
             <FullNameModal
               modalVisible={modalVisible}
               setModalVisible={setModalVisible}
@@ -315,14 +326,14 @@ export default function PersonalScreen({ navigation }: any) {
               setPhoneNumber={setPhoneNumber}
               setFullName={setFullName}
             />
-          ) : undefined}
+          )}
         </View>
 
         <View style={styles.main2}>
           <Text style={styles.title}>CV/Cover Letter</Text>
 
           <Text>Would you like you to have a job that suits you</Text>
-          {Auth && UserId && (
+          {UserProfileData&& (
             <View style={styles.cardProfile}>
               <Text style={styles.titleProfile}>
                 {UserProfileData?.firstName} {UserProfileData?.lastName} CV
@@ -347,10 +358,9 @@ export default function PersonalScreen({ navigation }: any) {
               </View>
             </View>
           )}
-          {Auth &&
-            UserId &&
+          {dataCVS &&
             dataCVS.map((file) => (
-              <View style={styles.fileItemContainer}>
+              <View style={styles.fileItemContainer} key={file.id}>
                 <View style={styles.fileInfo}>
                   <Text style={styles.fileName}>{file.name}</Text>
                   {deletingId === file.id ? (
@@ -361,10 +371,6 @@ export default function PersonalScreen({ navigation }: any) {
                     </TouchableOpacity>
                   )}
                 </View>
-                {/* <Text style={styles.fileDetails}>
-                    {file.uploadTime} {"\n"}Uploaded from {file.source}
-                  </Text> */}
-
                 <TouchableOpacity
                   style={styles.previewButton}
                   onPress={() => handlePreview(file.url)}
@@ -374,12 +380,7 @@ export default function PersonalScreen({ navigation }: any) {
               </View>
             ))}
 
-          <TouchableOpacity
-            style={styles.update}
-            // onPress={() => setModalVisibleCV(true)}
-            // onPress={() => setModalVisibleLogin(true)}
-            onPress={handleAuth}
-          >
+          <TouchableOpacity style={styles.update} onPress={handleAuth}>
             <Text style={{ fontSize: 20, lineHeight: 30, color: "white" }}>
               UPLOAD/CREATE NEW CV{" "}
             </Text>
@@ -391,6 +392,7 @@ export default function PersonalScreen({ navigation }: any) {
             navigation={navigation}
           />
           <AuthModal
+            navigation={navigation}
             visible={modalVisibleLogin}
             onClose={() => setModalVisibleLogin(false)}
           />

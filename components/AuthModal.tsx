@@ -8,14 +8,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
+  DevSettings,
 } from "react-native";
 import { login } from "../Services/AuthService/Login";
 import { jwtDecode, JwtPayload } from "jwt-decode";
-import { useRoute } from "@react-navigation/native";
 import { register } from "../Services/AuthService/Register";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import VerificationModal from "./VerificationModal";
 import { queryClient } from "../Services/mainService";
-import { GetUserProfile } from "../Services/UserProfileService/UserProfile";
 
 interface CustomJwtPayload {
   Role: string;
@@ -26,6 +27,7 @@ interface CustomJwtPayload {
 interface AuthModalProps {
   visible: boolean;
   onClose: () => void;
+  navigation?: any;
 }
 
 interface FormData {
@@ -36,21 +38,29 @@ interface FormData {
   firstName?: string;
   lastName?: string;
   role?: number;
+  userEmail?: string;
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
-  const [isLogin, setIsLogin] = useState<boolean>(true);
-  const [formData, setFormData] = useState<FormData>({
-    userName: "",
-    password: "",
-    confirmPassword: "",
-    email: "",
-    firstName: "",
-    lastName: "",
-    role: 0,
-  });
+const initialFormData: FormData = {
+  userName: "",
+  password: "",
+  confirmPassword: "",
+  email: "",
+  firstName: "",
+  lastName: "",
+  userEmail: "",
+  role: 0,
+};
 
-  const route = useRoute(); // Di chuyển vào bên trong component
+const AuthModal: React.FC<AuthModalProps> = ({
+  visible,
+  onClose,
+  navigation,
+}) => {
+  const [isLogin, setIsLogin] = useState<boolean>(true);
+  const [modalVisibleAuth, setModalVisibleAuth] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [formData, setFormData] = useState<FormData>(initialFormData);
 
   const {
     mutate: mutateRegister,
@@ -61,20 +71,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
     reset,
   } = useMutation({
     mutationFn: register,
-    onSuccess: () => {
-      Alert.alert("Success", "Registration successful!");
-
-      setFormData({
-        userName: "",
-        email: "",
-        firstName: "",
-        lastName: "",
-        password: "",
-        confirmPassword: "",
-        role: 0,
-      });
-
-      setIsLogin(true); // Chuyển sang màn hình đăng nhập sau khi đăng ký thành công
+    onSuccess: async (data) => {
+      setFormData(initialFormData);
+      await AsyncStorage.setItem("userIdRegister", data.result.toString());
+      onClose();
+      setModalVisibleAuth(true);
       setTimeout(() => {
         reset();
       }, 3000);
@@ -91,28 +92,55 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
     mutate: mutateLogin,
     error: loginError,
     isError: isLoginError,
-    isSuccess: isLoginSuccess,
     isPending: PendingLogin,
   } = useMutation({
     mutationFn: login,
     onSuccess: async (data) => {
       const userInfo = jwtDecode<CustomJwtPayload>(data.result);
-      const userRole = userInfo.Role.toLowerCase();
-      const userId = userInfo.UserId.toLowerCase();
-      const userName = userInfo.name;
+      const { Role: userRole, UserId: userId, name: userName } = userInfo;
       const token = data.result;
 
       try {
-        await AsyncStorage.setItem("Auth", "true");
-        await AsyncStorage.setItem("name", userName);
-        await AsyncStorage.setItem("role", userRole);
-        await AsyncStorage.setItem("token", token);
-        await AsyncStorage.setItem("userId", userId);
+        await AsyncStorage.multiSet([
+          ["Auth", "true"],
+          ["name", userName],
+          ["role", userRole.toLowerCase()],
+          ["token", token],
+          ["userId", userId.toLowerCase()],
+        ]);
+
+        queryClient.invalidateQueries({
+          queryKey: ["UserProfile"],
+          refetchType: "active",
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["JobPosts"],
+          refetchType: "active",
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["CVs"],
+          refetchType: "active",
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["JobPostActivity"],
+          refetchType: "active",
+        });
 
         Alert.alert("Success", "Login successful!");
 
-        // Đóng modal sau khi đăng nhập thành công
-        onClose();
+        setLoading(true);
+        // setTimeout(() => {
+        //   DevSettings.reload();
+        //   navigation.reset()
+        // }, 2000);
+        setTimeout(() => {
+          setLoading(false);
+
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "MyScreen" }],
+          });
+        }, 2000);
       } catch (e) {
         Alert.alert("Error", "Failed to save user data.");
         console.error("Failed to save user data:", e);
@@ -129,27 +157,17 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
   const handleInputChange = (name: keyof FormData, value: string) => {
     setFormData((prevData) => ({
       ...prevData,
-      [name]: value,
+      [name]: value.trim(),
     }));
   };
 
   const handleLogin = async () => {
-    const { userName, password } = formData;
-    if (!userName || !password) {
+    const { userEmail, password } = formData;
+    if (!userEmail || !password) {
       Alert.alert("Error", "Please fill in all fields");
       return;
     }
-    try {
-      mutateLogin({
-        user: {
-          userName: userName,
-          password: password,
-        },
-      });
-   
-    } catch (error) {
-      Alert.alert("Error", "Something went wrong");
-    }
+    mutateLogin({ user: { userEmail, password } });
   };
 
   const handleRegister = async () => {
@@ -188,82 +206,123 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.container}>
-        <View style={styles.modal}>
-          <Text style={styles.title}>{isLogin ? "Login" : "Register"}</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Username"
-            value={formData.userName}
-            onChangeText={(text) => handleInputChange("userName", text)}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            secureTextEntry
-            value={formData.password}
-            onChangeText={(text) => handleInputChange("password", text)}
-          />
-          {!isLogin && (
-            <>
-              <TextInput
-                style={styles.input}
-                placeholder="Confirm Password"
-                secureTextEntry
-                value={formData.confirmPassword}
-                onChangeText={(text) =>
-                  handleInputChange("confirmPassword", text)
-                }
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                value={formData.email}
-                onChangeText={(text) => handleInputChange("email", text)}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="First Name"
-                value={formData.firstName}
-                onChangeText={(text) => handleInputChange("firstName", text)}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Last Name"
-                value={formData.lastName}
-                onChangeText={(text) => handleInputChange("lastName", text)}
-              />
-            </>
+    <>
+      <VerificationModal
+        visible={modalVisibleAuth}
+        onClose={() => setModalVisibleAuth(false)}
+      />
+      <Modal visible={visible} animationType="slide" transparent>
+        <View style={styles.container}>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#ff5733" />
+              <Text style={styles.loadingText}>Reloading...</Text>
+            </View>
+          ) : (
+            <View style={styles.modal}>
+              <Text style={styles.title}>{isLogin ? "Login" : "Register"}</Text>
+              {isLogin ? (
+                <>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="UserEmail"
+                    value={formData.userEmail}
+                    onChangeText={(text) =>
+                      handleInputChange("userEmail", text)
+                    }
+                    editable={!PendingLogin}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    secureTextEntry
+                    value={formData.password}
+                    onChangeText={(text) => handleInputChange("password", text)}
+                    editable={!PendingLogin}
+                  />
+                </>
+              ) : (
+                <>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Username"
+                    value={formData.userName}
+                    onChangeText={(text) => handleInputChange("userName", text)}
+                    editable={!RegisterPending}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    secureTextEntry
+                    value={formData.password}
+                    onChangeText={(text) => handleInputChange("password", text)}
+                    editable={!RegisterPending}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Confirm Password"
+                    secureTextEntry
+                    value={formData.confirmPassword}
+                    onChangeText={(text) =>
+                      handleInputChange("confirmPassword", text)
+                    }
+                    editable={!RegisterPending}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Email"
+                    value={formData.email}
+                    onChangeText={(text) => handleInputChange("email", text)}
+                    editable={!RegisterPending}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="First Name"
+                    value={formData.firstName}
+                    onChangeText={(text) =>
+                      handleInputChange("firstName", text)
+                    }
+                    editable={!RegisterPending}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Last Name"
+                    value={formData.lastName}
+                    onChangeText={(text) => handleInputChange("lastName", text)}
+                    editable={!RegisterPending}
+                  />
+                </>
+              )}
+              <TouchableOpacity
+                style={styles.button}
+                onPress={isLogin ? handleLogin : handleRegister}
+                disabled={PendingLogin || RegisterPending}
+              >
+                <Text style={styles.buttonText}>
+                  {isLogin
+                    ? PendingLogin
+                      ? "Please wait..."
+                      : "Login"
+                    : RegisterPending
+                    ? "Please wait..."
+                    : "Register"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
+                <Text style={styles.switchText}>
+                  {isLogin
+                    ? "Don't have an account? Register"
+                    : "Already have an account? Login"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onClose}>
+                <Text style={styles.closeText}>Close</Text>
+              </TouchableOpacity>
+            </View>
           )}
-          <TouchableOpacity
-            style={styles.button}
-            onPress={isLogin ? handleLogin : handleRegister}
-          >
-            <Text style={styles.buttonText}>
-          
-              {isLogin
-                ? PendingLogin
-                  ? "Wait a seconds"
-                  : "Login"
-                : RegisterPending
-                ? "Wait a seconds"
-                : "Register"}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
-            <Text style={styles.switchText}>
-              {isLogin
-                ? "Don't have an account? Register"
-                : "Already have an account? Login"}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={styles.closeText}>Close</Text>
-          </TouchableOpacity>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+    </>
   );
 };
 
@@ -312,6 +371,15 @@ const styles = StyleSheet.create({
   closeText: {
     textAlign: "center",
     color: "grey",
+  },
+  loadingContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 18,
+    color: "#ff5733",
   },
 });
 

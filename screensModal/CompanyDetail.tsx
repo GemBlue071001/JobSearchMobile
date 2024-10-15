@@ -145,7 +145,7 @@ export default function CompanyDetail({ route, navigation }: any) {
             onClose={() => setModalVisibleLogin(false)}
           />
           <Text style={styles.cardTitle}>Introduction</Text>
-          <Text style={styles.paragraph}>
+          <View>
             {companyDataa?.companyDescription ? (
               <RenderHTML
                 contentWidth={width}
@@ -154,7 +154,7 @@ export default function CompanyDetail({ route, navigation }: any) {
             ) : (
               "Description not available"
             )}
-          </Text>
+          </View>
         </View>
       );
       // } else if (selectedTab === "news") {

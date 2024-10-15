@@ -147,7 +147,7 @@ export default function JobDetail({ route, navigation }: any) {
           </View>
 
           <Text style={styles.cardTitle}>Job Description</Text>
-          <Text style={styles.paragraph}>
+          <View>
             {job?.jobDescription ? (
               <RenderHTML
                 contentWidth={width}
@@ -156,9 +156,9 @@ export default function JobDetail({ route, navigation }: any) {
             ) : (
               "Description not available"
             )}
-          </Text>
+          </View>
           <Text style={styles.cardTitle}>Job Benefit</Text>
-          <Text style={styles.paragraph}>
+          <View>
             {job?.benefits ? (
               <RenderHTML
                 contentWidth={width}
@@ -167,9 +167,9 @@ export default function JobDetail({ route, navigation }: any) {
             ) : (
               "Description not available"
             )}
-          </Text>
+          </View>
           <Text style={styles.cardTitle}>Job Required</Text>
-          <Text style={styles.paragraph}>
+          <View>
             {job?.qualificationRequired ? (
               <RenderHTML
                 contentWidth={width}
@@ -178,7 +178,7 @@ export default function JobDetail({ route, navigation }: any) {
             ) : (
               "Description not available"
             )}
-          </Text>
+          </View>
         </View>
       );
       // } else if (selectedTab === "news") {
@@ -317,7 +317,7 @@ export default function JobDetail({ route, navigation }: any) {
             {/* </Link> */}
           </View>
           <Text style={styles.cardTitle}>Introduce</Text>
-          <Text style={styles.paragraph}>
+          <View>
             {detailsCompany?.companyDescription ? (
               <RenderHTML
                 contentWidth={width}
@@ -326,7 +326,7 @@ export default function JobDetail({ route, navigation }: any) {
             ) : (
               "Description not available"
             )}
-          </Text>
+          </View>
         </View>
       );
     }
@@ -344,10 +344,11 @@ export default function JobDetail({ route, navigation }: any) {
     const Auth = await AsyncStorage.getItem("Auth");
     if (!Auth) {
       setModalVisibleLogin(true);
+      return;
     }
     navigation.navigate("Apply", { job: job, id: job.id });
   };
-  // Render job details if found
+
   return (
     <View>
       <ScrollView contentContainerStyle={styles.scrollViewContainer}>
@@ -475,23 +476,24 @@ export default function JobDetail({ route, navigation }: any) {
             </View>
           </TouchableOpacity>
           {hasAppliedJobActivity ? (
-            <TouchableOpacity style={styles.applyButtonApplied} onPress={handleApply}>
-              <AuthModal
-                visible={modalVisibleLogin}
-                onClose={() => setModalVisibleLogin(false)}
-              />
-              <Text style={styles.applyButtonText}>{hasAppliedJobActivity.status}</Text>
+            <TouchableOpacity
+              style={styles.applyButtonApplied}
+              onPress={handleApply}
+            >
+              <Text style={styles.applyButtonText}>
+                {hasAppliedJobActivity.status}
+              </Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
-              <AuthModal
-                visible={modalVisibleLogin}
-                onClose={() => setModalVisibleLogin(false)}
-              />
               <Text style={styles.applyButtonText}>EASY APPLY</Text>
             </TouchableOpacity>
           )}
         </View>
+        <AuthModal
+          visible={modalVisibleLogin}
+          onClose={() => setModalVisibleLogin(false)}
+        />
       </View>
     </View>
   );

@@ -46,7 +46,7 @@ export default function BottomNav({ navigation }: any) {
       <Tab.Screen
         name="Account"
         component={PersonalScreen}
-        options={{ header: () => <AccountHeader /> }}
+        options={{ header: () => <AccountHeader navigation={navigation} /> }}
       />
     </Tab.Navigator>
   );

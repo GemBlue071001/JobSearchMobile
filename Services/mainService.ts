@@ -10,6 +10,8 @@ export const apiLinks = {
   auth: {
     login: `${baseURL}/Auth/login`,
     register: `${baseURL}/Auth/register`,
+    AUTH:`${baseURL}/Auth/Verification`,
+    Email:`${baseURL}/Auth/Email`,
   },
   Company: {
     POST: `${baseURL}/Company`,

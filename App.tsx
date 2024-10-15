@@ -27,6 +27,7 @@ import ResumeScreen from "./screensModal/CVModal";
 import UploadCVScreen from "./screensModal/UploadCV";
 
 import { createDrawerNavigator } from "@react-navigation/drawer";
+import VerificationModal from "./screensModal/VerificationModal";
 
 export default function App() {
   const Stack = createStackNavigator();
@@ -127,6 +128,11 @@ export default function App() {
           <Stack.Screen
             name="ApplyComplete"
             component={ApplyComplete}
+            options={{ presentation: "modal" }}
+          />
+            <Stack.Screen
+            name="VerificationModal"
+            component={VerificationModal}
             options={{ presentation: "modal" }}
           />
         </Stack.Navigator>

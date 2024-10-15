@@ -6,14 +6,13 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Alert,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import RenderHtml from "react-native-render-html";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
 import { PostFollowCompany } from "../Services/FollowCompany/PostFollowCompany";
 import { queryClient } from "../Services/mainService";
-import { Alert } from "react-native";
 import { DeleteFollowCompany } from "../Services/FollowCompany/DeleteFollowCompany";
 import { GetFollowCompany } from "../Services/FollowCompany/GetFollowCompany";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -73,89 +72,77 @@ interface CardEmployerProps {
 }
 
 export default function CompanyCard({ data, navigation }: CardEmployerProps) {
-  const [follow, setFollow] = useState<boolean>(false);
-  const { width } = Dimensions.get("window");
-
-  const { data: JobPosts } = useQuery({
-    queryKey: ["JobPosts"],
-    queryFn: ({ signal }) => GetJobPost({ signal: signal }),
-    staleTime: 5000,
-  });
-  const JobPostsdata = JobPosts?.JobPosts;
-  const { mutate } = useMutation({
-    mutationFn: PostFollowCompany,
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["FollowCompany"],
-        refetchType: "active",
-      });
-      Alert.alert(`Follow ${data?.companyName} Successfully`);
-    },
-    // onError: () => {
-    //   Alert.alert(`Failed to Follow ${data?.companyName} `);
-    // },
-  });
-  const { mutate: Unfollow } = useMutation({
-    mutationFn: DeleteFollowCompany,
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["FollowCompany"],
-        refetchType: "active",
-      });
-      Alert.alert(`Unfollow ${data?.companyName} Successfully`);
-    },
-    onError: () => {
-      Alert.alert(`Failed to UnFollow ${data?.companyName} `);
-    },
-  });
-  const { data: FollowCompany } = useQuery({
-    queryKey: ["FollowCompany"],
-    queryFn: ({ signal }) => GetFollowCompany({ signal }),
-    staleTime: 5000,
-  });
-  const FollowCompanydata = FollowCompany?.Companies;
   const [modalVisibleLogin, setModalVisibleLogin] = useState<boolean>(false);
-  const haveFollow = FollowCompanydata?.find(
-    (item) => item.id === Number(data.id)
-  );
-  const handleFollow =async() => {
-    const Auth = await AsyncStorage.getItem("Auth");
-    if (!Auth) {
-      setModalVisibleLogin(true);
-    }
-    mutate({
-      data: {
-        companyId: Number(data.id),
-      },
+  const [showMore, setShowMore] = useState<boolean>(false); // State to handle show more/less
+
+  const toggleShowMore = () => {
+    setShowMore(!showMore);
+    navigation.navigate("CompanyDetail", {
+      id: data?.id,
+      companyDetail: JSON.stringify(data),
     });
   };
+  const { mutate: followCompany } = useMutation({
+    mutationFn: PostFollowCompany,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["FollowCompany"] });
+      Alert.alert(`Followed ${data?.companyName} successfully`);
+    },
+    onError: () => {
+      Alert.alert(`Failed to follow ${data?.companyName}`);
+    },
+  });
 
-  const handleUnFollow =async() => {
+  const { mutate: unfollowCompany } = useMutation({
+    mutationFn: DeleteFollowCompany,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["FollowCompany"] });
+      Alert.alert(`Unfollowed ${data?.companyName} successfully`);
+    },
+    onError: () => {
+      Alert.alert(`Failed to unfollow ${data?.companyName}`);
+    },
+  });
+
+  const { data: FollowCompany } = useQuery({
+    queryKey: ["FollowCompany"],
+    queryFn: GetFollowCompany,
+    staleTime: 5000,
+  });
+
+  const haveFollow = FollowCompany?.Companies?.find(
+    (item) => item.id === Number(data.id)
+  );
+
+  const handleFollow = async () => {
     const Auth = await AsyncStorage.getItem("Auth");
     if (!Auth) {
       setModalVisibleLogin(true);
+      return; 
     }
-    Unfollow({ id: Number(haveFollow?.id) });
+    followCompany({ data: { companyId: Number(data.id) } });
   };
+
+  const handleUnFollow = async () => {
+    const Auth = await AsyncStorage.getItem("Auth");
+    if (!Auth) {
+      setModalVisibleLogin(true);
+      return; // Prevent unfollowing if not authenticated
+    }
+    unfollowCompany({ id: Number(haveFollow?.id) });
+  };
+
+  const { width } = Dimensions.get("window");
 
   return (
     <View style={styles.main}>
-      <View>
-        <Image
-          source={{
-            uri: data.imageUrl,
-          }}
-          style={styles.logo}
-        />
-      </View>
+      <Image source={{ uri: data.imageUrl }} style={styles.logo} />
 
       <View style={styles.main2}>
         <View style={styles.header}>
           <View style={styles.img}>
             <Image
-              source={{
-                uri: data.imageUrl,
-              }}
+              source={{ uri: data.imageUrl }}
               style={styles.logo1}
               resizeMode="contain"
             />
@@ -180,63 +167,62 @@ export default function CompanyCard({ data, navigation }: CardEmployerProps) {
           </View>
         </View>
 
-        <Text style={styles.text} numberOfLines={2} ellipsizeMode="tail">
-          <RenderHtml
-            contentWidth={width}
-            source={{ html: data.companyDescription }}
-          />
-        </Text>
+        {/* <View style={styles.text} numberOfLines={2} ellipsizeMode="tail">
+          <RenderHtml contentWidth={width} source={{ html: data.companyDescription }} />
+        </View> */}
+        <View>
+          <View
+            style={{
+              maxHeight: showMore ? undefined : 100,
+              overflow: "hidden",
+            }}
+          >
+            <RenderHtml
+              contentWidth={width}
+              source={{ html: data.companyDescription }}
+            />
+          </View>
+
+          <TouchableOpacity onPress={toggleShowMore}>
+            <Text style={styles.readMoreText}>
+              {showMore ? "Show less" : "Read more"}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.job}>
-          <Icon
-            name="work"
-            size={30}
-            color="#808080"
-            style={{ marginTop: 5 }}
-          />
-          <Text style={styles.text} numberOfLines={2} ellipsizeMode="tail">
-            {data.jobPosts.length} Jobs
-          </Text>
+          <Icon name="work" size={30} color="#808080" />
+          <Text style={styles.text}>{data.jobPosts.length} Jobs</Text>
         </View>
 
         <View style={styles.skill}>
           <View style={styles.skillList}>
-            {data.jobPosts.map((job, jobIndex) => {
-              const jobSkill = JobPostsdata?.find((item) => item.id === job.id);
-              return jobSkill?.skillSets?.map((tag, tagIndex) => (
-                <TouchableOpacity
-                  key={`${jobIndex}-${tagIndex}`}
-                  style={styles.button}
-                >
+            {data.jobPosts.map((job) =>
+              job.skillSets.map((tag, index) => (
+                <TouchableOpacity key={index} style={styles.button}>
                   <Text style={styles.buttonText}>{tag}</Text>
                 </TouchableOpacity>
-              ));
-            })}
+              ))
+            )}
           </View>
+
           <View>
-            {haveFollow?.id === data.id ? (
+            {haveFollow ? (
               <TouchableOpacity onPress={handleUnFollow}>
-                <Icon
-                  name={"bookmark" }
-                  size={30}
-                  color="#808080"
-                /> 
+                <Icon name="bookmark" size={30} color="#808080" />
               </TouchableOpacity>
             ) : (
               <TouchableOpacity onPress={handleFollow}>
-                <Icon
-                  name={"bookmark-border"}
-                  size={30}
-                  color="#808080"
-                />
+                <Icon name="bookmark-border" size={30} color="#808080" />
               </TouchableOpacity>
             )}
           </View>
         </View>
+
         <AuthModal
-            visible={modalVisibleLogin}
-            onClose={() => setModalVisibleLogin(false)}
-          />
+          visible={modalVisibleLogin}
+          onClose={() => setModalVisibleLogin(false)}
+        />
       </View>
     </View>
   );
@@ -248,21 +234,20 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     borderWidth: 1,
     borderColor: "#dedede",
-    borderRadius: 10, // Rounded card edges
-    overflow: "hidden", // Prevent content overflow
-    marginBottom: 15, // Space between cards
-    width: "100%", // Full width of the container
+    borderRadius: 10,
+    marginBottom: 15,
+    width: "100%",
     backgroundColor: "white",
-    shadowColor: "#000", // Shadow for iOS
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
-    elevation: 2, // Shadow for Android
+    elevation: 2,
   },
   logo: {
     height: 200,
-    width: "100%", // Ensures image fills the width
-    resizeMode: "cover", // Keeps image aspect ratio
+    width: "100%",
+    resizeMode: "cover",
   },
   main2: {
     paddingRight: 20,
@@ -273,24 +258,24 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    flexShrink: 1, // Ensure content fits within the container
-    marginBottom: 10, // Spacing between header and description
+    flexShrink: 1,
+    marginBottom: 10,
   },
   img: {
     padding: 12,
-    borderRadius: 50, // Rounded logo container
+    borderRadius: 50,
     borderWidth: 1,
     borderColor: "#dedede",
     backgroundColor: "white",
   },
   logo1: {
-    height: 60, // Adjusted size for company logo
+    height: 60,
     width: 60,
-    borderRadius: 30, // Rounded company logo
+    borderRadius: 30,
   },
   main3: {
-    marginLeft: 10, // Adjusted margin for spacing
-    flexShrink: 1, // Ensure text content does not overflow the container
+    marginLeft: 10,
+    flexShrink: 1,
   },
   textStyle: {
     color: "#FF4500",
@@ -335,6 +320,11 @@ const styles = StyleSheet.create({
     color: "#666",
     fontSize: 14,
     fontWeight: "500",
-    textAlign: "center",
+  },
+  readMoreText: {
+    color: "#FF4500",
+    marginTop: 5,
+    fontWeight: "bold",
+    textAlign: "right",
   },
 });
