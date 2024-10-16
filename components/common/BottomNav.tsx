@@ -1,21 +1,23 @@
-import DetailsScreen from "../../screens/DetailsScreen";
-import HomeScreen from "../../screens/HomeScreen";
-import Icon from "react-native-vector-icons/FontAwesome";
+import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import CompanyDetail from "../../screensModal/CompanyDetail";
+import Icon from "react-native-vector-icons/FontAwesome";
+import HomeScreen from "../../screens/HomeScreen";
 import CompaniesScreen from "../../screens/CompaniesScreen";
 import PersonalScreen from "../../screens/PersonalScreen";
-import AccountHeader from "./AccountHeader";
-import MainHeader from "./MainHeader";
+import { ProfileScreenWithDrawer } from "../../App";
+import {
+  BottomTabNavigationOptions,
+  BottomTabScreenProps,
+} from "@react-navigation/bottom-tabs";
 
-export default function BottomNav({ navigation }: any) {
-  const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator();
 
+export default function BottomNav({ navigation }: BottomTabScreenProps<any>) {
   return (
     <Tab.Navigator
-      screenOptions={({ route }: any) => ({
-        tabBarIcon: ({ color, size }: any) => {
-          let iconName: string = "circle";
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ color, size }: { color: string; size: number }) => {
+          let iconName = "circle";
 
           if (route.name === "Home") {
             iconName = "home";
@@ -31,23 +33,29 @@ export default function BottomNav({ navigation }: any) {
         tabBarInactiveTintColor: "gray",
       })}
     >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{ header: () => <MainHeader navigation={navigation} /> }}
-      />
-      {/* <Tab.Screen name="CompanyDetail" component={CompanyDetail}  /> */}
+      <Tab.Screen name="Home" options={{ headerShown: false }}>
+        {() => (
+          <ProfileScreenWithDrawer component={HomeScreen} headerType="main" />
+        )}
+      </Tab.Screen>
 
-      <Tab.Screen
-        name="Companies"
-        component={CompaniesScreen}
-        options={{ header: () => <MainHeader navigation={navigation} /> }}
-      />
-      <Tab.Screen
-        name="Account"
-        component={PersonalScreen}
-        options={{ header: () => <AccountHeader navigation={navigation} /> }}
-      />
+      <Tab.Screen name="Companies" options={{ headerShown: false }}>
+        {() => (
+          <ProfileScreenWithDrawer
+            component={CompaniesScreen}
+            headerType="main"
+          />
+        )}
+      </Tab.Screen>
+
+      <Tab.Screen name="Account" options={{ headerShown: false }}>
+        {() => (
+          <ProfileScreenWithDrawer
+            component={PersonalScreen}
+            headerType="account"
+          />
+        )}
+      </Tab.Screen>
     </Tab.Navigator>
   );
 }

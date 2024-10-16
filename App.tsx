@@ -25,20 +25,32 @@ import EducationDetailsEdit from "./screensModal/EducationDetails";
 import ExperienceDetailsEdit from "./screensModal/ExperienceDetails";
 import ResumeScreen from "./screensModal/CVModal";
 import UploadCVScreen from "./screensModal/UploadCV";
+import "react-native-gesture-handler";
 
-import { createDrawerNavigator } from "@react-navigation/drawer";
+import {
+  createDrawerNavigator,
+  DrawerContentComponentProps,
+  DrawerContentScrollView,
+  DrawerItem,
+} from "@react-navigation/drawer";
 import VerificationModal from "./screensModal/VerificationModal";
+import PersonalScreen from "./screens/PersonalScreen";
+import { Text, View } from "react-native";
+import AccountHeader from "./components/common/AccountHeader";
+import SidebarContent from "./components/SideBarContent";
+import CompaniesScreen from "./screens/CompaniesScreen";
+import { ComponentType } from "react";
+import LoginScreen from "./screens/LoginScreen";
+import RegisterScreen from "./screens/RegisterScreen";
+import EmailVerification from "./screens/EmailVerification";
+const Stack = createStackNavigator();
+const Drawer = createDrawerNavigator();
 
 export default function App() {
-  const Stack = createStackNavigator();
-
   return (
     <QueryClientProvider client={queryClient}>
       <NavigationContainer>
-        <Stack.Navigator
-        
-        >
-       
+        <Stack.Navigator>
           <Stack.Screen
             name="BottomTabs"
             component={BottomNav}
@@ -47,6 +59,7 @@ export default function App() {
             // }}
             options={{ headerShown: false }}
           />
+
           <Stack.Screen
             name="CompanyDetail"
             component={CompanyDetail}
@@ -130,13 +143,70 @@ export default function App() {
             component={ApplyComplete}
             options={{ presentation: "modal" }}
           />
-            <Stack.Screen
+          <Stack.Screen
             name="VerificationModal"
             component={VerificationModal}
             options={{ presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="Login"
+            component={LoginScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Register"
+            component={RegisterScreen}
+            options={{ headerShown: false }}
+            // options={{ presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="Verification"
+            component={EmailVerification}
+            options={{ headerShown: false }}
+            // options={{ presentation: "modal" }}
           />
         </Stack.Navigator>
       </NavigationContainer>
     </QueryClientProvider>
   );
 }
+
+type ProfileScreenWithDrawerProps = {
+  component: ComponentType<any>;
+  headerType: string;
+};
+
+export const ProfileScreenWithDrawer: React.FC<
+  ProfileScreenWithDrawerProps
+> = ({ component: Component, headerType = true, ...restProps }) => {
+  const Drawer = createDrawerNavigator();
+  const getHeaderForType = (navigation: any) => {
+    switch (headerType) {
+      case "main":
+        return <MainHeader navigation={navigation} />;
+      case "account":
+        return <AccountHeader navigation={navigation} />;
+      // case "custom":
+      //   return <CustomHeader navigation={navigation} />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Drawer.Navigator
+      initialRouteName="Home"
+      drawerContent={(props: DrawerContentComponentProps) => (
+        <SidebarContent {...props} />
+      )}
+    >
+      <Drawer.Screen
+        name="tabs"
+        options={({ navigation }) => ({
+          header: () => getHeaderForType(navigation),
+        })}
+        component={(props: any) => <Component {...props} {...restProps} />}
+      />
+    </Drawer.Navigator>
+  );
+};

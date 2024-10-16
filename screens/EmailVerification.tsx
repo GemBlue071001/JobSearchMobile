@@ -1,7 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
 import {
-  Modal,
   View,
   Text,
   TextInput,
@@ -12,12 +11,9 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { PutEmail } from "../Services/AuthService/PutEmail";
 import { AuthService } from "../Services/AuthService/AuthService";
-import AuthModal from "./AuthModal";
 
 interface AuthModalProps {
-  visible: boolean;
-  onClose: () => void;
-  navigation:any
+  navigation: any;
 }
 
 interface FormData {
@@ -26,7 +22,7 @@ interface FormData {
   newEmail: string;
 }
 
-const VerificationModal: React.FC<AuthModalProps> = ({ visible, onClose,navigation }) => {
+const EmailVerification: React.FC<AuthModalProps> = ({ navigation }) => {
   const [isLogin, setIsLogin] = useState<boolean>(true);
   const [userRegisterId, setUserRegisterId] = useState<string | null>(null);
   const [modalVisibleLogin, setModalVisibleLogin] = useState<boolean>(false);
@@ -75,15 +71,12 @@ const VerificationModal: React.FC<AuthModalProps> = ({ visible, onClose,navigati
     },
   });
 
-  const {
-    mutate: mutateAuth,
-    isPending: PendingLogin,
-  } = useMutation({
+  const { mutate: mutateAuth, isPending: PendingLogin } = useMutation({
     mutationFn: AuthService,
     onSuccess: () => {
       setModalVisibleLogin(true);
       Alert.alert("Success", "Account Verification Complete!");
-      onClose();
+      navigation.navigate("Login");
     },
     onError: () => {
       Alert.alert(
@@ -129,72 +122,64 @@ const VerificationModal: React.FC<AuthModalProps> = ({ visible, onClose,navigati
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.container}>
-        <View style={styles.modal}>
-          <Text style={styles.title}>{isLogin ? "Login" : "Register"}</Text>
+    <View style={styles.container}>
+      <View style={styles.form}>
+        <Text style={styles.title}>{isLogin ? "Login" : "Register"}</Text>
 
-          {isLogin ? (
-            <TextInput
-              style={styles.input}
-              placeholder="Verification Code"
-              value={formData.verificationCode}
-              onChangeText={(text) =>
-                handleInputChange("verificationCode", text)
-              }
-            />
-          ) : (
-            <TextInput
-              style={styles.input}
-              placeholder="New Email"
-              value={formData.newEmail}
-              onChangeText={(text) => handleInputChange("newEmail", text)}
-            />
-          )}
+        {isLogin ? (
+          <TextInput
+            style={styles.input}
+            placeholder="Verification Code"
+            value={formData.verificationCode}
+            onChangeText={(text) => handleInputChange("verificationCode", text)}
+          />
+        ) : (
+          <TextInput
+            style={styles.input}
+            placeholder="New Email"
+            value={formData.newEmail}
+            onChangeText={(text) => handleInputChange("newEmail", text)}
+          />
+        )}
 
-          <TouchableOpacity
-            style={styles.button}
-            onPress={isLogin ? handleLogin : handleRegister}
-            disabled={PendingLogin || RegisterPending}
-          >
-            <Text style={styles.buttonText}>
-              {isLogin
-                ? PendingLogin
-                  ? "Please wait..."
-                  : "Verify"
-                : RegisterPending
+        <TouchableOpacity
+          style={styles.button}
+          onPress={isLogin ? handleLogin : handleRegister}
+          disabled={PendingLogin || RegisterPending}
+        >
+          <Text style={styles.buttonText}>
+            {isLogin
+              ? PendingLogin
                 ? "Please wait..."
-                : "Update Email"}
-            </Text>
-          </TouchableOpacity>
+                : "Verify"
+              : RegisterPending
+              ? "Please wait..."
+              : "Update Email"}
+          </Text>
+        </TouchableOpacity>
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
             <Text style={styles.switchText}>
               {isLogin ? "Switch to Email Update" : "Switch to Verification"}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={styles.closeText}>Close</Text>
+          <TouchableOpacity onPress={() => navigation.navigate("Login") }>
+            <Text style={styles.switchText}>Login Now</Text>
           </TouchableOpacity>
         </View>
       </View>
-      <AuthModal
-        visible={modalVisibleLogin}
-        onClose={() => setModalVisibleLogin(false)}
-        navigation={navigation}
-     
-      />
-    </Modal>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#FF6A00", // Adjusted background color for the screen
   },
-  modal: {
+  form: {
     backgroundColor: "white",
     padding: 20,
     borderRadius: 10,
@@ -229,10 +214,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 10,
   },
-  closeText: {
-    textAlign: "center",
-    color: "grey",
-  },
 });
 
-export default VerificationModal;
+export default EmailVerification;

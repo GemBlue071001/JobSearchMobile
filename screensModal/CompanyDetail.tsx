@@ -1,5 +1,5 @@
 // import { useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Dimensions,
@@ -25,6 +25,7 @@ import { DeleteFollowCompany } from "../Services/FollowCompany/DeleteFollowCompa
 import { GetFollowCompany } from "../Services/FollowCompany/GetFollowCompany";
 import AuthModal from "../components/AuthModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 // import { companyData } from "../mock/CompanyData";
 type InfoLineProps = {
   icon: string;
@@ -32,16 +33,27 @@ type InfoLineProps = {
 };
 export default function CompanyDetail({ route, navigation }: any) {
   const { id, companyDetail } = route.params;
-  // const parsedId = Array.isArray(id) ? id[0] : id;
-  // const parsedCompanyData = Array.isArray(companyDetail)
-  //   ? companyDetail[0]
-  //   : companyDetail;
-  // const company:Company = parsedCompanyData ? JSON.parse(parsedCompanyData) : null;
+  const [redirectState, setRedirectState] = useState(null);
+  console.log('colen',redirectState)
+  const [token, setToken] = useState<string | null>("");
+  const fetchUserData = async () => {
+    const id = await AsyncStorage.getItem("userId");
+    const auth = await AsyncStorage.getItem("Auth");
+    const token = await AsyncStorage.getItem("token");
+    setToken(token);
+  
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserData(); // Fetch Auth and UserId on focus
+    }, [token])
+  );
   const { width } = Dimensions.get("window");
   const { data: CompanyData } = useQuery({
     queryKey: ["Company-details", id],
     queryFn: ({ signal }) => fetchCompaniesById({ id: Number(id), signal }),
-    enabled: !!id,
+    // enabled: !!id,
   });
 
   const companyDataa = CompanyData?.Companies;
@@ -51,6 +63,22 @@ export default function CompanyDetail({ route, navigation }: any) {
       // header: () => <MainHeader company={companyData} />
     });
   }, [navigation, companyDataa]);
+
+  useEffect(() => {
+    const storeJob = async () => {
+      if (companyDataa) {
+        try {
+        
+          await AsyncStorage.setItem("redirectState", JSON.stringify(companyDataa));
+          console.log('Job saved successfully.');
+        } catch (e) {
+          console.error('Failed to save job to AsyncStorage:', e);
+        }
+      }
+    };
+  
+    storeJob(); 
+  }, [companyDataa]);
   // const company:Company= JSON.parse(companyDetail);
   const [selectedTab, setSelectedTab] = useState("about");
   const { data: JobPosts } = useQuery({
@@ -112,6 +140,7 @@ export default function CompanyDetail({ route, navigation }: any) {
     queryKey: ["FollowCompany"],
     queryFn: ({ signal }) => GetFollowCompany({ signal }),
     staleTime: 5000,
+    enabled:!!token
   });
   const FollowCompanydata = FollowCompany?.Companies;
   const [modalVisibleLogin, setModalVisibleLogin] = useState<boolean>(false);
@@ -120,6 +149,7 @@ export default function CompanyDetail({ route, navigation }: any) {
     const Auth = await AsyncStorage.getItem("Auth");
     if (!Auth) {
       setModalVisibleLogin(true);
+      return; 
     }
     mutate({
       data: {
@@ -143,6 +173,7 @@ export default function CompanyDetail({ route, navigation }: any) {
            <AuthModal
             visible={modalVisibleLogin}
             onClose={() => setModalVisibleLogin(false)}
+            navigation={navigation}
           />
           <Text style={styles.cardTitle}>Introduction</Text>
           <View>
@@ -229,7 +260,7 @@ export default function CompanyDetail({ route, navigation }: any) {
               <View
                 style={{ paddingHorizontal: 15, width: "100%", marginTop: 10 }}
               >
-                {haveFollow ? (
+                {haveFollow  && token? (
                   <TouchableOpacity
                     style={[styles.follow, { backgroundColor: "#FF4500" }]}
                     onPress={handleUnFollow}

@@ -89,7 +89,7 @@ export default function CardJobs({ data,  company, navigation }: props) {
         {/* <Link href={{pathname:"/JobDetail",params:{id:data?.id } }} asChild> */}
 
         <TouchableOpacity
-          onPress={() => navigation.navigate("JobDetail", { id: data?.id })}
+          onPress={() => navigation.navigate("JobDetail", { jobId: data?.id })}
         >
           <Text style={styles.text1} numberOfLines={2} ellipsizeMode="tail">
             {data?.jobTitle}

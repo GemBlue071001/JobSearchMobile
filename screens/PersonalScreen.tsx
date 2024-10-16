@@ -52,16 +52,16 @@ export default function PersonalScreen({ navigation }: any) {
     // Return a fallback value if dateString is undefined
     return "Invalid date";
   };
-  const [Auth, setAuth] = useState<string|null >("");
-  const [UserId, setUserId] = useState<string|null>("");
-  const [token,setToken]=useState<string|null>("")
-  console.log("tokenne",token)
-  console.log()
+  const [Auth, setAuth] = useState<string | null>("");
+  const [UserId, setUserId] = useState<string | null>("");
+  const [token, setToken] = useState<string | null>("");
+  console.log("tokenne", token);
+  console.log();
   const fetchUserData = async () => {
     const id = await AsyncStorage.getItem("userId");
     const auth = await AsyncStorage.getItem("Auth");
     const token = await AsyncStorage.getItem("token");
-    setToken(token)
+    setToken(token);
     setAuth(auth);
     setUserId(id);
   };
@@ -69,7 +69,6 @@ export default function PersonalScreen({ navigation }: any) {
   useFocusEffect(
     useCallback(() => {
       fetchUserData(); // Fetch Auth and UserId on focus
-     
     }, [])
   );
 
@@ -77,13 +76,12 @@ export default function PersonalScreen({ navigation }: any) {
     queryKey: ["UserProfile"],
     queryFn: ({ signal }) =>
       GetUserProfile({ id: Number(UserId), signal: signal }),
-    enabled: !!UserId, // Only fetch if UserId is available
+    enabled: !!UserId, 
   });
   const { data } = useQuery({
     queryKey: ["CVs"],
     queryFn: ({ signal }) => fetchCVs({ signal }),
     staleTime: 1000,
-    enabled: !!Auth,
   });
   const handlePreview = (url: string) => {
     if (url) {
@@ -99,8 +97,8 @@ export default function PersonalScreen({ navigation }: any) {
   const dataCVS = data?.CVs || [];
   const UserProfileData = UserProfile?.UserProfiles;
   const [fullName, setFullName] = useState<string>(
-    UserProfileData
-      ? `${UserProfileData.firstName} ${UserProfileData.lastName}`
+    token
+      ? `${UserProfileData?.firstName} ${UserProfileData?.lastName}`
       : ""
   );
   const handleAuth = async () => {
@@ -173,114 +171,124 @@ export default function PersonalScreen({ navigation }: any) {
   const renderContent = () => {
     if (selectedTab === "Applied") {
       return (
-        <View style={styles.jobdisplay}>
-          {JobPostActivitydata?.map((activity) => {
-            const PendingJobApplied = JobPostsdata?.find(
-              (job) => job.id === activity.jobPostId
-            );
-            const companys = Companiesdata?.find(
-              (item) => item.id === PendingJobApplied?.companyId
-            );
-            return (
-              <TouchableOpacity
-                style={styles.jobCard}
-                key={activity.id}
-                onPress={() =>
-                  navigation.navigate("JobDetail", { id: activity?.jobPostId })
-                }
-              >
-                <View style={styles.maincompany}>
-                  <View style={styles.maincom1}>
-                    <Image
-                      source={{
-                        uri: companys && companys.imageUrl,
-                      }}
-                      style={styles.image}
-                    />
-                    <Text
-                      style={styles.text}
-                      numberOfLines={2}
-                      ellipsizeMode="tail"
-                    >
-                      {companys?.companyName}
-                    </Text>
-                  </View>
-                  <View style={{ paddingLeft: 20, marginLeft: "auto" }}>
-                    {/* Nút follow/unfollow */}
-                    <TouchableOpacity onPress={() => setFollow(!follow)}>
-                      <Icon
-                        name={follow ? "bookmark" : "bookmark-border"}
-                        size={30}
-                        color="#808080"
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                <Text style={styles.jobTitle}>{activity.jobTitle}</Text>
-                <View style={styles.iconRow}>
-                  <Icon name="place" size={20} color="#777" />
-                  {PendingJobApplied?.jobLocationCities.map(
-                    (location, index) => (
-                      <Text style={styles.jobDetails} key={index}>
-                        {location}
-                        {index !==
-                        PendingJobApplied?.jobLocationCities.length - 1
-                          ? ","
-                          : ""}
-                      </Text>
-                    )
-                  )}
-                </View>
-                <View style={styles.iconRow}>
-                  <Icon name="attach-money" size={20} color="#777" />
-                  <Text style={styles.jobDetails}>
-                    {PendingJobApplied?.salary}
-                  </Text>
-                </View>
-                <View style={styles.iconRow}>
-                  <Icon name="access-time" size={20} color="#777" />
-                  <Text style={styles.jobDetails}>
-                    {formatDateTime(PendingJobApplied?.postingDate)}
-                  </Text>
-                </View>
-
-                <View style={styles.skillContainer}>
-                  {PendingJobApplied?.skillSets.map((skill, index) => (
-                    <TouchableOpacity style={styles.skill} key={index}>
-                      <Text style={styles.skillText}>{skill}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <View
-                  style={{
-                    marginTop: 10,
-                    paddingLeft: 1,
-                    flexDirection: "row",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{ color: "#777", fontSize: 12, lineHeight: 15 }}>
-                    Applied on: {formatDateTime(activity.applicationDate)}
-                  </Text>
-
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      fontWeight: "bold",
-                      marginHorizontal: 5,
-                    }}
+        <>
+          {token && (
+            <View style={styles.jobdisplay}>
+              {JobPostActivitydata?.map((activity) => {
+                const PendingJobApplied = JobPostsdata?.find(
+                  (job) => job.id === activity.jobPostId
+                );
+                const companys = Companiesdata?.find(
+                  (item) => item.id === PendingJobApplied?.companyId
+                );
+                return (
+                  <TouchableOpacity
+                    style={styles.jobCard}
+                    key={activity.id}
+                    onPress={() =>
+                      navigation.navigate("JobDetail", {
+                        id: activity?.jobPostId,
+                      })
+                    }
                   >
-                    •
-                  </Text>
+                    <View style={styles.maincompany}>
+                      <View style={styles.maincom1}>
+                        <Image
+                          source={{
+                            uri: companys && companys.imageUrl,
+                          }}
+                          style={styles.image}
+                        />
+                        <Text
+                          style={styles.text}
+                          numberOfLines={2}
+                          ellipsizeMode="tail"
+                        >
+                          {companys?.companyName}
+                        </Text>
+                      </View>
+                      <View style={{ paddingLeft: 20, marginLeft: "auto" }}>
+                        {/* Nút follow/unfollow */}
+                        <TouchableOpacity onPress={() => setFollow(!follow)}>
+                          <Icon
+                            name={follow ? "bookmark" : "bookmark-border"}
+                            size={30}
+                            color="#808080"
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                    <Text style={styles.jobTitle}>{activity.jobTitle}</Text>
+                    <View style={styles.iconRow}>
+                      <Icon name="place" size={20} color="#777" />
+                      {PendingJobApplied?.jobLocationCities.map(
+                        (location, index) => (
+                          <Text style={styles.jobDetails} key={index}>
+                            {location}
+                            {index !==
+                            PendingJobApplied?.jobLocationCities.length - 1
+                              ? ","
+                              : ""}
+                          </Text>
+                        )
+                      )}
+                    </View>
+                    <View style={styles.iconRow}>
+                      <Icon name="attach-money" size={20} color="#777" />
+                      <Text style={styles.jobDetails}>
+                        {PendingJobApplied?.salary}
+                      </Text>
+                    </View>
+                    <View style={styles.iconRow}>
+                      <Icon name="access-time" size={20} color="#777" />
+                      <Text style={styles.jobDetails}>
+                        {formatDateTime(PendingJobApplied?.postingDate)}
+                      </Text>
+                    </View>
 
-                  <Text style={{ color: "#777", fontSize: 12, lineHeight: 15 }}>
-                    Status: {activity.status}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+                    <View style={styles.skillContainer}>
+                      {PendingJobApplied?.skillSets.map((skill, index) => (
+                        <TouchableOpacity style={styles.skill} key={index}>
+                          <Text style={styles.skillText}>{skill}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    <View
+                      style={{
+                        marginTop: 10,
+                        paddingLeft: 1,
+                        flexDirection: "row",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text
+                        style={{ color: "#777", fontSize: 12, lineHeight: 15 }}
+                      >
+                        Applied on: {formatDateTime(activity.applicationDate)}
+                      </Text>
+
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontWeight: "bold",
+                          marginHorizontal: 5,
+                        }}
+                      >
+                        •
+                      </Text>
+
+                      <Text
+                        style={{ color: "#777", fontSize: 12, lineHeight: 15 }}
+                      >
+                        Status: {activity.status}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+        </>
       );
     } else if (selectedTab === "Saved") {
       return (
@@ -315,7 +323,7 @@ export default function PersonalScreen({ navigation }: any) {
           <ProfileCard fullName={fullName} setModalVisible={setModalVisible} />
 
           {/* Full Name Modal */}
-          {Auth && (
+          {token && (
             <FullNameModal
               modalVisible={modalVisible}
               setModalVisible={setModalVisible}
@@ -333,7 +341,7 @@ export default function PersonalScreen({ navigation }: any) {
           <Text style={styles.title}>CV/Cover Letter</Text>
 
           <Text>Would you like you to have a job that suits you</Text>
-          {UserProfileData&& (
+          {token && (
             <View style={styles.cardProfile}>
               <Text style={styles.titleProfile}>
                 {UserProfileData?.firstName} {UserProfileData?.lastName} CV
@@ -358,7 +366,7 @@ export default function PersonalScreen({ navigation }: any) {
               </View>
             </View>
           )}
-          {dataCVS &&
+          {token &&
             dataCVS.map((file) => (
               <View style={styles.fileItemContainer} key={file.id}>
                 <View style={styles.fileInfo}>

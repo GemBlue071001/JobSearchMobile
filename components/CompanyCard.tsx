@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -17,6 +17,7 @@ import { DeleteFollowCompany } from "../Services/FollowCompany/DeleteFollowCompa
 import { GetFollowCompany } from "../Services/FollowCompany/GetFollowCompany";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import AuthModal from "./AuthModal";
+import { useFocusEffect } from "@react-navigation/native";
 
 interface BusinessStream {
   id: number;
@@ -74,7 +75,20 @@ interface CardEmployerProps {
 export default function CompanyCard({ data, navigation }: CardEmployerProps) {
   const [modalVisibleLogin, setModalVisibleLogin] = useState<boolean>(false);
   const [showMore, setShowMore] = useState<boolean>(false); // State to handle show more/less
+  const [token, setToken] = useState<string | null>("");
+  const fetchUserData = async () => {
+    const id = await AsyncStorage.getItem("userId");
+    const auth = await AsyncStorage.getItem("Auth");
+    const token = await AsyncStorage.getItem("token");
+    setToken(token);
+  
+  };
 
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserData(); // Fetch Auth and UserId on focus
+    }, [])
+  );
   const toggleShowMore = () => {
     setShowMore(!showMore);
     navigation.navigate("CompanyDetail", {
@@ -85,7 +99,7 @@ export default function CompanyCard({ data, navigation }: CardEmployerProps) {
   const { mutate: followCompany } = useMutation({
     mutationFn: PostFollowCompany,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["FollowCompany"] });
+      queryClient.invalidateQueries({ queryKey: ["FollowCompany"] ,refetchType:'active'});
       Alert.alert(`Followed ${data?.companyName} successfully`);
     },
     onError: () => {
@@ -96,7 +110,7 @@ export default function CompanyCard({ data, navigation }: CardEmployerProps) {
   const { mutate: unfollowCompany } = useMutation({
     mutationFn: DeleteFollowCompany,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["FollowCompany"] });
+      queryClient.invalidateQueries({ queryKey: ["FollowCompany"] ,refetchType:'active'});
       Alert.alert(`Unfollowed ${data?.companyName} successfully`);
     },
     onError: () => {
@@ -108,6 +122,7 @@ export default function CompanyCard({ data, navigation }: CardEmployerProps) {
     queryKey: ["FollowCompany"],
     queryFn: GetFollowCompany,
     staleTime: 5000,
+    enabled:!!token
   });
 
   const haveFollow = FollowCompany?.Companies?.find(
@@ -207,7 +222,7 @@ export default function CompanyCard({ data, navigation }: CardEmployerProps) {
           </View>
 
           <View>
-            {haveFollow ? (
+            {haveFollow  && token? (
               <TouchableOpacity onPress={handleUnFollow}>
                 <Icon name="bookmark" size={30} color="#808080" />
               </TouchableOpacity>
@@ -222,6 +237,7 @@ export default function CompanyCard({ data, navigation }: CardEmployerProps) {
         <AuthModal
           visible={modalVisibleLogin}
           onClose={() => setModalVisibleLogin(false)}
+          navigation={navigation}
         />
       </View>
     </View>

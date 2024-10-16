@@ -51,9 +51,9 @@ export default function AccountHeader({ navigation }: any) {
       setAuth(null);
       setUserId(null);
       toggleModal()
-    
+      
       setTimeout(() => {
-        DevSettings.reload();
+        // DevSettings.reload();
       }, 1500); 
     } catch (error) {
       console.error("Error during logout:", error);
@@ -66,16 +66,16 @@ export default function AccountHeader({ navigation }: any) {
       <View style={styles.container}>
         {/* Top bar with menu and exit icons */}
         <View style={styles.topBar}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.openDrawer()}>
             <Icon name="bars" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.text}>My Profile</Text>
 
-          {(auth || UserId) && (
+          {/* {(auth || UserId) && (
             <TouchableOpacity onPress={toggleModal}>
               <Icon name="sign-out" size={24} color="#fff" />
             </TouchableOpacity>
-          )}
+          )} */}
         </View>
 
         {/* Modal for logout confirmation */}
@@ -97,12 +97,12 @@ export default function AccountHeader({ navigation }: any) {
         </Modal>
 
         {/* Show loading spinner when logging out */}
-        {loading && (
+        {/* {loading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#FF4500" />
             <Text style={styles.loadingText}>Logging out...</Text>
           </View>
-        )}
+        )} */}
       </View>
     </View>
   );

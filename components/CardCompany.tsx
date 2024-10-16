@@ -1,6 +1,13 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import React, { useState } from "react";
-import { View, Image, TouchableOpacity, Text, StyleSheet, Alert } from "react-native";
+import React, { useCallback, useState } from "react";
+import {
+  View,
+  Image,
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  Alert,
+} from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
 import { PostFollowCompany } from "../Services/FollowCompany/PostFollowCompany";
@@ -9,6 +16,7 @@ import { DeleteFollowCompany } from "../Services/FollowCompany/DeleteFollowCompa
 import { GetFollowCompany } from "../Services/FollowCompany/GetFollowCompany";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import AuthModal from "./AuthModal";
+import { useFocusEffect } from "@react-navigation/native";
 
 const SkillSet = ["PHP", "Front End", "Java", "End", "Javascript"];
 
@@ -50,10 +58,10 @@ interface JobPost {
   companyId: number;
   companyName: string;
   websiteCompanyURL: string;
-  jobType: JobType; 
+  jobType: JobType;
   jobLocationCities: string[];
   jobLocationAddressDetail: string[];
-  skillSets: string[]; 
+  skillSets: string[];
 }
 interface Company {
   id: number;
@@ -97,6 +105,19 @@ export default function CardCompany({ data, navigation }: CardEmployerProps) {
     //   Alert.alert(`Failed to Follow ${data?.companyName} `);
     // },
   });
+  const [token, setToken] = useState<string | null>("");
+  const fetchUserData = async () => {
+    const id = await AsyncStorage.getItem("userId");
+    const auth = await AsyncStorage.getItem("Auth");
+    const token = await AsyncStorage.getItem("token");
+    setToken(token);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserData(); // Fetch Auth and UserId on focus
+    }, [token])
+  );
   const { mutate: Unfollow } = useMutation({
     mutationFn: DeleteFollowCompany,
     onSuccess: () => {
@@ -114,6 +135,7 @@ export default function CardCompany({ data, navigation }: CardEmployerProps) {
     queryKey: ["FollowCompany"],
     queryFn: ({ signal }) => GetFollowCompany({ signal }),
     staleTime: 5000,
+    enabled: !!token,
   });
   const FollowCompanydata = FollowCompany?.Companies;
 
@@ -121,10 +143,11 @@ export default function CardCompany({ data, navigation }: CardEmployerProps) {
     (item) => item.id === Number(data.id)
   );
   const [modalVisibleLogin, setModalVisibleLogin] = useState<boolean>(false);
-  const handleFollow = async() => {
+  const handleFollow = async () => {
     const Auth = await AsyncStorage.getItem("Auth");
     if (!Auth) {
       setModalVisibleLogin(true);
+      return;
     }
     mutate({
       data: {
@@ -175,7 +198,11 @@ export default function CardCompany({ data, navigation }: CardEmployerProps) {
         {/* Location */}
         <View style={styles.location}>
           <Icon name="location-on" size={20} color="#808080" />
-          <Text style={styles.locationtext}  numberOfLines={2} ellipsizeMode="tail">
+          <Text
+            style={styles.locationtext}
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
             {data.address} in {data.city}
           </Text>
         </View>
@@ -197,27 +224,20 @@ export default function CardCompany({ data, navigation }: CardEmployerProps) {
           <AuthModal
             visible={modalVisibleLogin}
             onClose={() => setModalVisibleLogin(false)}
+            navigation={navigation}
           />
         </View>
       </View>
       <View style={styles.icon}>
-      {haveFollow?.id === data.id ? (
-              <TouchableOpacity onPress={handleUnFollow}>
-                <Icon
-                  name={"bookmark" }
-                  size={30}
-                  color="#808080"
-                /> 
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity onPress={handleFollow}>
-                <Icon
-                  name={"bookmark-border"}
-                  size={30}
-                  color="#808080"
-                />
-              </TouchableOpacity>
-            )}
+        {haveFollow && token ? (
+          <TouchableOpacity onPress={handleUnFollow}>
+            <Icon name={"bookmark"} size={30} color="#808080" />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity onPress={handleFollow}>
+            <Icon name={"bookmark-border"} size={30} color="#808080" />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -235,7 +255,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     position: "relative",
     gap: 20,
-    
   },
   image: {
     height: 48,
@@ -248,11 +267,10 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     justifyContent: "flex-start",
     flexShrink: 1,
-   
   },
   skillList: {
     flexDirection: "row",
-    flexWrap: "wrap", 
+    flexWrap: "wrap",
     width: "100%",
   },
   button: {
@@ -276,7 +294,7 @@ const styles = StyleSheet.create({
   },
   location: {
     flexDirection: "row",
-    
+
     gap: 5,
     alignItems: "center",
     justifyContent: "flex-start",
@@ -284,7 +302,7 @@ const styles = StyleSheet.create({
   locationtext: {
     fontSize: 15,
     lineHeight: 30,
-    flexShrink: 1
+    flexShrink: 1,
   },
   line2: {
     flexDirection: "row",

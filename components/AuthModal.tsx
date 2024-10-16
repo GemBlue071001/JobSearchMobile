@@ -17,6 +17,8 @@ import { register } from "../Services/AuthService/Register";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import VerificationModal from "./VerificationModal";
 import { queryClient } from "../Services/mainService";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { useNavigation, useNavigationState } from "@react-navigation/native";
 
 interface CustomJwtPayload {
   Role: string;
@@ -27,7 +29,7 @@ interface CustomJwtPayload {
 interface AuthModalProps {
   visible: boolean;
   onClose: () => void;
-  navigation?: any;
+  navigation: any;
 }
 
 interface FormData {
@@ -51,7 +53,12 @@ const initialFormData: FormData = {
   userEmail: "",
   role: 0,
 };
-
+type RootStackParamList = {
+  Home: undefined;
+  MyScreen: undefined;
+  Account: undefined;
+};
+type NavigationProps = StackNavigationProp<RootStackParamList, "Account">;
 const AuthModal: React.FC<AuthModalProps> = ({
   visible,
   onClose,
@@ -61,7 +68,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [modalVisibleAuth, setModalVisibleAuth] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [formData, setFormData] = useState<FormData>(initialFormData);
-
+  const currentRoute = useNavigationState((state) => state.routes[state.index]);
   const {
     mutate: mutateRegister,
     error: registerError,
@@ -99,6 +106,17 @@ const AuthModal: React.FC<AuthModalProps> = ({
       const userInfo = jwtDecode<CustomJwtPayload>(data.result);
       const { Role: userRole, UserId: userId, name: userName } = userInfo;
       const token = data.result;
+      const redirectStateString = await AsyncStorage.getItem("redirectState");
+      const redirectState = redirectStateString
+        ? JSON.parse(redirectStateString)
+        : {};
+      const redirectStateString1 = await AsyncStorage.getItem(
+        "redirectStateJob"
+      );
+      const redirectState1 = redirectStateString1
+        ? JSON.parse(redirectStateString1)
+        : {};
+      const combinedState = { ...redirectState, ...redirectState1 };
 
       try {
         await AsyncStorage.multiSet([
@@ -127,18 +145,26 @@ const AuthModal: React.FC<AuthModalProps> = ({
         });
 
         Alert.alert("Success", "Login successful!");
-
+        onClose();
         setLoading(true);
+
         // setTimeout(() => {
         //   DevSettings.reload();
         //   navigation.reset()
         // }, 2000);
+        navigation.navigate(currentRoute.name, {
+          combinedState,
+          id: redirectState?.id,
+          jobId: redirectState1.id,
+        });
+
         setTimeout(() => {
           setLoading(false);
 
-          navigation.reset({
-            index: 0,
-            routes: [{ name: "MyScreen" }],
+          navigation.replace(currentRoute.name, {
+            combinedState,
+            id: redirectState?.id,
+            jobId: redirectState1.id,
           });
         }, 2000);
       } catch (e) {
@@ -210,6 +236,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
       <VerificationModal
         visible={modalVisibleAuth}
         onClose={() => setModalVisibleAuth(false)}
+        navigation={navigation}
       />
       <Modal visible={visible} animationType="slide" transparent>
         <View style={styles.container}>

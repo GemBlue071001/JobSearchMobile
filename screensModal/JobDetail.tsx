@@ -1,6 +1,13 @@
 // import { useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
-import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  Alert,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { jobData } from "../mock/JobData";
 import { Image } from "react-native";
 
@@ -9,13 +16,18 @@ import { TouchableOpacity } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import AuthModal from "../components/AuthModal";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { GetJobPostById } from "../Services/JobsPost/GetJobPostById";
 import { fetchCompanies } from "../Services/CompanyService/GetCompanies";
 import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
 import { GetJobActivity } from "../Services/UserJobPostActivity/GetUserJobPostActivity";
 import RenderHTML from "react-native-render-html";
 import { GetBusinessStream } from "../Services/BusinessStreamService/GetBusinessStream";
+import { useFocusEffect } from "@react-navigation/native";
+import { PostFollowCompany } from "../Services/FollowCompany/PostFollowCompany";
+import { queryClient } from "../Services/mainService";
+import { DeleteFollowCompany } from "../Services/FollowCompany/DeleteFollowCompany";
+import { GetFollowCompany } from "../Services/FollowCompany/GetFollowCompany";
 // import { Item } from "react-native-paper/lib/typescript/components/Drawer/Drawer";
 // import { Link } from "expo-router";
 type InfoLineProps = {
@@ -31,20 +43,35 @@ const InfoLine = ({ icon, text }: InfoLineProps) => (
 );
 
 export default function JobDetail({ route, navigation }: any) {
-  const { id } = route.params;
+  const { jobId } = route.params;
   const [follow, setFollow] = useState<boolean>(false);
   const [selectedTab, setSelectedTab] = useState("Job Details");
   const [modalVisibleLogin, setModalVisibleLogin] = useState<boolean>(false);
   const { width } = Dimensions.get("window");
+
+  const [token, setToken] = useState<string | null>("");
+  const fetchUserData = async () => {
+    const id = await AsyncStorage.getItem("userId");
+    const auth = await AsyncStorage.getItem("Auth");
+    const token = await AsyncStorage.getItem("token");
+    setToken(token);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserData(); // Fetch Auth and UserId on focus
+    }, [token])
+  );
+
   const formatDate = (isoString: string) => {
     const date = new Date(isoString);
     return date.toISOString().split("T")[0]; // Chỉ lấy phần ngày (YYYY-MM-DD)
   };
   // Parse the id as a number for comparison with numeric job ids
   const { data: jobData } = useQuery({
-    queryKey: ["Job-details", id],
-    queryFn: ({ signal }) => GetJobPostById({ id: Number(id), signal }), // Convert JobId to number
-    enabled: !!id, // Chỉ chạy query khi JobId có giá trị
+    queryKey: ["Job-details", jobId],
+    queryFn: ({ signal }) => GetJobPostById({ id: Number(jobId), signal }), // Convert JobId to number
+    enabled: !!jobId, // Chỉ chạy query khi JobId có giá trị
   });
 
   const {
@@ -86,6 +113,21 @@ export default function JobDetail({ route, navigation }: any) {
   const Companiesdata = Company?.Companies;
 
   const job = jobData?.JobPosts;
+
+  useEffect(() => {
+    const storeJob = async () => {
+      if (job) {
+        try {
+          await AsyncStorage.setItem("redirectStateJob", JSON.stringify(job));
+          console.log("Job saved successfully.");
+        } catch (e) {
+          console.error("Failed to save job to AsyncStorage:", e);
+        }
+      }
+    };
+
+    storeJob();
+  }, [job]);
   const JobPostsdata = JobPosts?.JobPosts;
   const detailsCompany = Companiesdata?.find(
     (item) => item.id === job?.companyId
@@ -97,6 +139,62 @@ export default function JobDetail({ route, navigation }: any) {
   const BusinessStreamDatainCompany = BusinessStreamData?.find(
     (item) => detailsCompany?.businessStream?.id === item.id
   );
+  const { data: FollowCompany } = useQuery({
+    queryKey: ["FollowCompany"],
+    queryFn: ({ signal }) => GetFollowCompany({ signal }),
+    staleTime: 5000,
+  });
+  const FollowCompanydata = FollowCompany?.Companies;
+  const { mutate } = useMutation({
+    mutationFn: PostFollowCompany,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["FollowCompany"],
+        refetchType: "active",
+      });
+      Alert.alert(`Follow ${detailsCompany?.companyName} Successfully`);
+    },
+    onError: () => {
+      Alert.alert(`Failed to Follow ${detailsCompany?.companyName} `);
+    },
+  });
+  const { mutate: Unfollow } = useMutation({
+    mutationFn: DeleteFollowCompany,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["FollowCompany"],
+        refetchType: "active",
+      });
+      Alert.alert(`Unfollow ${detailsCompany?.companyName} Successfully`);
+    },
+    // onError: () => {
+    //   Alert.alert(`Failed to UnFollow ${companyDataa?.companyName} `);
+    // },
+  });
+  const handleFollow = async () => {
+    const Auth = await AsyncStorage.getItem("Auth");
+    if (!Auth) {
+      setModalVisibleLogin(true);
+      return;
+    }
+    mutate({
+      data: {
+        companyId: Number(detailsCompany?.id),
+      },
+    });
+  };
+  const haveFollow = FollowCompanydata?.find(
+    (item) => item.id === Number(detailsCompany?.id)
+  );
+
+  const handleUnFollow = async () => {
+    const Auth = await AsyncStorage.getItem("Auth");
+    if (!Auth) {
+      setModalVisibleLogin(true);
+    }
+    Unfollow({ id: Number(haveFollow?.id) });
+  };
+
   const renderContent = () => {
     if (selectedTab === "Job Details") {
       return (
@@ -263,8 +361,44 @@ export default function JobDetail({ route, navigation }: any) {
               <Text> {BusinessStreamDatainCompany?.businessStreamName}</Text>
             </View>
           </View>
-
-          <View
+          {haveFollow && token ? (
+            <TouchableOpacity
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                borderColor: "#FF4500",
+                borderWidth: 1,
+                backgroundColor: "white",
+                paddingVertical: 10,
+                width: "100%",
+                borderRadius: 10,
+              }}
+              onPress={handleUnFollow}
+            >
+              <Text style={{ fontSize: 20, lineHeight: 30, color: "#FF4500" }}>
+                UnFollow
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                borderColor: "#FF4500",
+                borderWidth: 1,
+                backgroundColor: "white",
+                paddingVertical: 10,
+                width: "100%",
+                borderRadius: 10,
+              }}
+              onPress={handleFollow}
+            >
+              <Text style={{ fontSize: 20, lineHeight: 30, color: "#FF4500" }}>
+                Follow
+              </Text>
+            </TouchableOpacity>
+          )}
+          {/* <TouchableOpacity
             style={{
               alignItems: "center",
               justifyContent: "center",
@@ -275,11 +409,12 @@ export default function JobDetail({ route, navigation }: any) {
               width: "100%",
               borderRadius: 10,
             }}
+            onPress={handleUnFollow}
           >
             <Text style={{ fontSize: 20, lineHeight: 30, color: "#FF4500" }}>
               Follow
             </Text>
-          </View>
+          </TouchableOpacity> */}
           <View
             style={{
               alignItems: "center",
@@ -475,7 +610,7 @@ export default function JobDetail({ route, navigation }: any) {
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
-          {hasAppliedJobActivity ? (
+          {hasAppliedJobActivity && token ? (
             <TouchableOpacity
               style={styles.applyButtonApplied}
               onPress={handleApply}
@@ -493,6 +628,7 @@ export default function JobDetail({ route, navigation }: any) {
         <AuthModal
           visible={modalVisibleLogin}
           onClose={() => setModalVisibleLogin(false)}
+          navigation={navigation}
         />
       </View>
     </View>

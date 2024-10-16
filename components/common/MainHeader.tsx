@@ -26,7 +26,7 @@ export default function MainHeader({ navigation }: { navigation: any }) {
       <View style={styles.container}>
         {/* Top bar with menu and bell icons */}
         <View style={styles.topBar}>
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.openDrawer()}>
             <Icon name="bars" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.text}>Amazing Jobs</Text>
