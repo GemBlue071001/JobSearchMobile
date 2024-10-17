@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import { FontAwesome } from "@expo/vector-icons";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import Icons from "react-native-vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigationState } from "@react-navigation/native";
+import { useFocusEffect, useNavigationState } from "@react-navigation/native";
 
 export default function SidebarContent(props: any) {
   const { navigation } = props;
@@ -23,28 +23,60 @@ export default function SidebarContent(props: any) {
 
   const currentRoute = useNavigationState((state) => state.routes[state.index]);
 
-  // Sign out function
+  const [token, setToken] = useState<string | null>("");
+  const fetchUserData = async () => {
+    const id = await AsyncStorage.getItem("userId");
+    const auth = await AsyncStorage.getItem("Auth");
+    const token = await AsyncStorage.getItem("token");
+    setToken(token);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserData();
+    }, [token])
+  );
   const handleSignOut = async () => {
     try {
       setLoading(true); // Start loading
       await AsyncStorage.clear();
       await AsyncStorage.setItem("redirectPath", currentRoute.name);
       // DevSettings.reload();
-      navigation.replace(currentRoute.name)
+      navigation.replace(currentRoute.name);
       navigation.navigate("Login");
     } catch (e) {
       console.error("Failed to sign out.", e);
     }
   };
 
+  const handleSignIn =()=>{
+    navigation.navigate('Login')
+  }
+
   // When the app reloads, it will automatically navigate to login, so no need to handle navigation here.
   return (
     <DrawerContentScrollView {...props} contentContainerStyle={{ flex: 1 }}>
-      {/* Profile section */}
-      <View style={styles.profileSection}>
-        <FontAwesome name="user-circle" size={60} color="black" />
-        <Text style={styles.userName}>Thúc Minh</Text>
-      </View>
+      {token ? (
+        <View style={styles.profileSection}>
+          <FontAwesome name="user-circle" size={60} color="black" />
+          <Text style={styles.userName}>Thúc Minh</Text>
+        </View>
+      ) : (
+        <View style={styles.customLinks}>
+        <TouchableOpacity style={styles.login} onPress={handleSignIn}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {/* <FontAwesome name="sign-out" size={20} color="red" /> */}
+            <Text style={[styles.linkText, { color: "white" }]}>Login </Text>
+          </View>
+        </TouchableOpacity>
+        </View>
+      )}
 
       {/* Custom Links below the main menu items */}
       <View style={styles.customLinks}>
@@ -78,19 +110,20 @@ export default function SidebarContent(props: any) {
         </TouchableOpacity>
       </View>
 
-      {/* Sign Out button */}
-      <TouchableOpacity style={styles.lineItemm} onPress={handleSignOut}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <FontAwesome name="sign-out" size={20} color="red" />
-          <Text style={[styles.linkText, { color: "red" }]}>Sign Out</Text>
-        </View>
-      </TouchableOpacity>
+      {token && (
+        <TouchableOpacity style={styles.lineItemm} onPress={handleSignOut}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <FontAwesome name="sign-out" size={20} color="red" />
+            <Text style={[styles.linkText, { color: "red" }]}>Sign Out</Text>
+          </View>
+        </TouchableOpacity>
+      )}
 
       {/* Loading spinner */}
       {/* {loading && (
@@ -148,5 +181,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
+  },
+  login: {
+    backgroundColor: "#FF4500",
+    width: "100%",
+    paddingHorizontal: 10,
+    paddingVertical: 15,
+    elevation: 15,
+    textAlign: "center",
+    alignItems: "center",
+    justifyContent: "center",
+
   },
 });

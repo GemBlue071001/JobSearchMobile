@@ -116,7 +116,8 @@ export default function PersonalScreen({ navigation }: any) {
   };
 
   const handleNavigateCVProfile = () => {
-    navigation.navigate("CVModal");
+    // navigation.navigate("CVModal");
+    navigation.navigate("CVTemplate");
   };
   const {
     data: JobPosts,
@@ -665,7 +666,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 1, height: 1 },
     shadowRadius: 5,
     marginVertical: 10,
-    width: "90%",
+    width: "100%",
     alignSelf: "center",
   },
   titleProfile: {

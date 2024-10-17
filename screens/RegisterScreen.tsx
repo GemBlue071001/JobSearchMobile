@@ -141,7 +141,7 @@ const RegisterScreen = ({ navigation }: any) => {
         <TouchableOpacity>
           <Text style={styles.skipText}>Already Have An Account?</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate("Verification")}>
+        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
           <Text style={styles.skipText}>Login Now</Text>
         </TouchableOpacity>
       </View>

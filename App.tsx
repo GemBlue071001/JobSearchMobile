@@ -43,6 +43,8 @@ import { ComponentType } from "react";
 import LoginScreen from "./screens/LoginScreen";
 import RegisterScreen from "./screens/RegisterScreen";
 import EmailVerification from "./screens/EmailVerification";
+import CVTemplate from "./screensModal/CVTemplate";
+import MinimalModal from "./screensModal/MinimalModal";
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
 
@@ -146,6 +148,16 @@ export default function App() {
           <Stack.Screen
             name="VerificationModal"
             component={VerificationModal}
+            options={{ presentation: "modal" }}
+          />
+            <Stack.Screen
+            name="CVTemplate"
+            component={CVTemplate}
+            options={{ presentation: "modal" }}
+          />
+           <Stack.Screen
+            name="MinimalTemplate"
+            component={MinimalModal}
             options={{ presentation: "modal" }}
           />
           <Stack.Screen
