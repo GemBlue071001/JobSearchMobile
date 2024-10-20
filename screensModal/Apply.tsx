@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View,
   ScrollView,
+  FlatList,
 } from "react-native";
 
 import Icon from "react-native-vector-icons/MaterialIcons";
@@ -24,19 +25,18 @@ import { GetSeekerJobPost } from "../Services/JobsPost/GetSeekerJobPost";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import 'react-native-get-random-values';
-import * as uuid from 'uuid'
+import "react-native-get-random-values";
+import * as uuid from "uuid";
 import { storage } from "../firebase/config";
 
-
 interface FileResponse {
-  uri: string;  
+  uri: string;
   name: string | null;
   mimeType: string | null;
   size: number | null;
 }
 
-export default function Apply({ route,navigation }: any) {
+export default function Apply({ route, navigation }: any) {
   const { id } = route.params;
 
   const formatDate = (isoString: string) => {
@@ -110,7 +110,7 @@ export default function Apply({ route,navigation }: any) {
 
   const dataCVS = CVdata?.CVs || [];
 
-  const { mutate,isPending } = useMutation({
+  const { mutate, isPending } = useMutation({
     mutationFn: PostCVs,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["CVs"] });
@@ -131,20 +131,20 @@ export default function Apply({ route,navigation }: any) {
         ],
         copyToCacheDirectory: true,
       });
-  
+
       // Check if user cancelled file selection
       if (result.canceled) {
         Alert.alert("File selection was cancelled.");
         return;
       }
-  
+
       const selectedAsset = result.assets ? result.assets[0] : result;
-  
+
       if (!selectedAsset.uri) {
         Alert.alert("Error", "No file was selected.");
         return;
       }
-  
+
       // Set file details to state (optional)
       setSelectedFile({
         uri: selectedAsset.uri,
@@ -152,20 +152,20 @@ export default function Apply({ route,navigation }: any) {
         mimeType: selectedAsset.mimeType ?? "Unknown",
         size: selectedAsset.size ?? 0,
       });
-  
+
       // Generate a unique reference in Firebase Storage
       const fileRef = ref(storage, `${selectedAsset.name}`);
-  
+
       // Convert file URI to blob for upload
       const response = await fetch(selectedAsset.uri);
       const blob = await response.blob();
-  
+
       // Upload the file to Firebase Storage
       await uploadBytes(fileRef, blob);
-  
+
       // Get the download URL once upload completes
       const fileUrl = await getDownloadURL(fileRef);
-  
+
       // Perform mutation or any other action with the file URL and details
       mutate({
         data: {
@@ -173,12 +173,14 @@ export default function Apply({ route,navigation }: any) {
           name: selectedAsset.name,
         },
       });
-  
+
       Alert.alert("Success", "File uploaded successfully!");
-  
     } catch (error) {
       console.error("Error picking or uploading file: ", error);
-      Alert.alert("Error", "There was an error while selecting or uploading the file.");
+      Alert.alert(
+        "Error",
+        "There was an error while selecting or uploading the file."
+      );
     }
   }
   const { mutate: JobApply } = useMutation({
@@ -189,7 +191,7 @@ export default function Apply({ route,navigation }: any) {
         refetchType: "active",
       });
       Alert.alert(`CV Apply to ${job?.jobTitle} successfully!`);
-      navigation.navigate('ApplyComplete')
+      navigation.navigate("ApplyComplete");
     },
     onError: () => {
       Alert.alert("Failed to Apply CV.");
@@ -221,6 +223,10 @@ export default function Apply({ route,navigation }: any) {
   });
 
   const dataSeekerApply = SeekerApply?.GetSeekers;
+
+  const feedBackUserJob = dataSeekerApply?.find(
+    (item) => item.id === Number(UserId)
+  );
   const profileApply = dataSeekerApply?.find(
     (item) => item.id === Number(UserId)
   );
@@ -353,31 +359,59 @@ export default function Apply({ route,navigation }: any) {
               )}
             </View>
           </View>
-
-          <View style={styles.main1}>
-            <Text style={styles.title1}>Information</Text>
-
-            <TextInputComponent
-              text={name}
-              setText={setName}
-              name="Fullname"
-              placeholder="Input Your FullName"
-            />
-
-            <TextInputComponent
-              text={email}
-              setText={setEmail}
-              name="Email"
-              placeholder=""
-              boolean={false}
-            />
-            <TextInputComponent
-              text={phone}
-              setText={setPhone}
-              name="Phone Number"
-              placeholder="Optional"
-            />
+          {feedBackUserJob ? (
+            <View style={styles.main1}>
+              <Text style={styles.title1}>FeedBack </Text>
+              <FlatList
+      data={feedBackUserJob.jobPostActivityComments}
+      keyExtractor={(item) => item.id.toString()}
+      renderItem={({ item }) => (
+        <View style={{width:'100%'}}>
+        <View style={styles.commentContainer}>
+          <Text style={styles.commentText}>{item.commentText}</Text>
+          <Text style={styles.commentDate}>
+            {new Date(item.commentDate).toLocaleDateString()}
+          </Text>
+          <View style={styles.ratingContainer}>
+       
+            {Array.from({ length: item.rating }).map((_, index) => (
+              <Icon key={index} name="star" size={20} color="gold" />
+            ))}
           </View>
+        </View>
+           {/* <View style={styles.line}></View> */}
+        </View>
+
+      )}
+    />
+              
+            </View>
+          ) : (
+            <View style={styles.main1}>
+              <Text style={styles.title1}>Information</Text>
+
+              <TextInputComponent
+                text={name}
+                setText={setName}
+                name="Fullname"
+                placeholder="Input Your FullName"
+              />
+
+              <TextInputComponent
+                text={email}
+                setText={setEmail}
+                name="Email"
+                placeholder=""
+                boolean={false}
+              />
+              <TextInputComponent
+                text={phone}
+                setText={setPhone}
+                name="Phone Number"
+                placeholder="Optional"
+              />
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -407,8 +441,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     flexDirection: "column",
     gap: 10,
-    alignItems: "flex-start",
-    justifyContent: "flex-start",
+    // alignItems: "flex-start",
+    // justifyContent: "flex-start",
     backgroundColor: "#fff",
   },
   title: {
@@ -421,6 +455,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     lineHeight: 30,
+ 
   },
   companyText: {
     fontSize: 15,
@@ -544,5 +579,41 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 30,
     fontWeight: "bold",
+  },
+  commentContainer: {
+    // padding: 10,
+    borderBottomWidth: 1,
+    borderColor: "#ccc",
+    marginBottom:10
+
+    // width:'100%'
+  },
+  line:{
+    borderBottomWidth: 1,
+    borderColor: "#ccc",
+    width:50,
+    justifyContent:'center',
+    alignItems:'center',
+    textAlign:'center'
+  },
+  line1:{
+    borderBottomWidth: 1,
+    borderColor: "#ccc",
+    width:'100%',
+    justifyContent:'center',
+    alignItems:'center',
+    textAlign:'center'
+  },
+  commentText: {
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  commentDate: {
+    fontSize: 12,
+    color: "#777",
+    marginBottom: 5,
+  },
+  ratingContainer: {
+    flexDirection: "row",
   },
 });

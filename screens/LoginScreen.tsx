@@ -20,6 +20,7 @@ interface CustomJwtPayload {
   Role: string;
   UserId: string;
   name: string;
+  CompanyId:string
 }
 type LoginScreenRouteProp = RouteProp<
   { params: { previousScreen: string } },
@@ -41,7 +42,7 @@ const LoginScreen = ({ navigation, route }: any) => {
     mutationFn: login,
     onSuccess: async (data) => {
       const userInfo = jwtDecode<CustomJwtPayload>(data.result);
-      const { Role: userRole, UserId: userId, name: userName } = userInfo;
+      const { Role: userRole, UserId: userId, name: userName,CompanyId:CompanyId } = userInfo;
       const token = data.result;
       const previousScreen = await AsyncStorage.getItem("redirectPath");
       console.log("haha", previousScreen);
@@ -52,7 +53,9 @@ const LoginScreen = ({ navigation, route }: any) => {
           ["role", userRole.toLowerCase()],
           ["token", token],
           ["userId", userId.toLowerCase()],
+          ["CompanyId",CompanyId],
         ]);
+        
 
         // Invalidate queries after login
         queryClient.invalidateQueries({
@@ -72,7 +75,10 @@ const LoginScreen = ({ navigation, route }: any) => {
           refetchType: "active",
         });
 
-        Alert.alert("Success", "Login successful!");
+        // Alert.alert("Success", "Login successful!");
+        // if(userRole === "Employer"){
+        //   navigation.navigate("Employer")
+        // }
         navigation.navigate(previousScreen);
       } catch (e) {
         Alert.alert("Error", "Failed to save user data.");

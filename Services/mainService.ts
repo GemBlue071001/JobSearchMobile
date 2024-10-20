@@ -10,6 +10,7 @@ export const apiLinks = {
   auth: {
     login: `${baseURL}/Auth/login`,
     register: `${baseURL}/Auth/register`,
+    password:`${baseURL}/Auth/UpdatePassword`,
     AUTH:`${baseURL}/Auth/Verification`,
     Email:`${baseURL}/Auth/Email`,
   },
@@ -84,5 +85,17 @@ export const apiLinks = {
     POST: `${baseURL}/FollowCompany`,
     GET:`${baseURL}/FollowCompany`,
     DELETE:`${baseURL}/FollowCompany`,
+  },
+  FavoriteJobs:{
+    POST: `${baseURL}/FollowJobPost`,
+    GET:`${baseURL}/FollowJobPost`,
+    DELETE:`${baseURL}/FollowJobPost`,
+  },
+  JobsComment:{
+    POST: `${baseURL}/JobPostActivityComment`,
+    GET:`${baseURL}/JobPostActivityComment`,
+    DELETE:`${baseURL}/JobPostActivityComment`,
+    PUT: `${baseURL}/JobPostActivityComment`,
+    GETBYID:`${baseURL}/JobPostActivityComment/Id`,
   }
 };

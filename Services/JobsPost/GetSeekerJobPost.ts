@@ -1,6 +1,12 @@
 import httpClient from "../../httpClient/httpClient";
 import { apiLinks } from "../mainService";
 
+interface Comment {
+  id: number;
+  commentText: string;
+  commentDate: string;
+  rating: number;
+}
 interface SeekersByJobPost {
   id: number;
   userName: string;
@@ -11,7 +17,11 @@ interface SeekersByJobPost {
   cvId: number;
   cvPath: string;
   jobPostActivityId: number;
+  status:string;
+  jobPostActivityComments:Comment[]
 }
+
+
 
 interface signal {
   signal?: AbortSignal;

@@ -28,6 +28,10 @@ import { PostFollowCompany } from "../Services/FollowCompany/PostFollowCompany";
 import { queryClient } from "../Services/mainService";
 import { DeleteFollowCompany } from "../Services/FollowCompany/DeleteFollowCompany";
 import { GetFollowCompany } from "../Services/FollowCompany/GetFollowCompany";
+import { PostFavoriteJobs } from "../Services/FavoriteJobs/PostFavoriteJobs";
+import { DeleteFavoriteJobs } from "../Services/FavoriteJobs/DeleteFavoriteJobs";
+import { GetFavoriteJobs } from "../Services/FavoriteJobs/GetFavoriteJobs";
+import { GetSeekerJobPost } from "../Services/JobsPost/GetSeekerJobPost";
 // import { Item } from "react-native-paper/lib/typescript/components/Drawer/Drawer";
 // import { Link } from "expo-router";
 type InfoLineProps = {
@@ -50,11 +54,14 @@ export default function JobDetail({ route, navigation }: any) {
   const { width } = Dimensions.get("window");
 
   const [token, setToken] = useState<string | null>("");
+  const [userId, setUserId] = useState<string | null>("");
+
   const fetchUserData = async () => {
     const id = await AsyncStorage.getItem("userId");
     const auth = await AsyncStorage.getItem("Auth");
     const token = await AsyncStorage.getItem("token");
     setToken(token);
+    setUserId(id);
   };
 
   useFocusEffect(
@@ -114,6 +121,59 @@ export default function JobDetail({ route, navigation }: any) {
 
   const job = jobData?.JobPosts;
 
+  const { mutate: SaveJobs } = useMutation({
+    mutationFn: PostFavoriteJobs,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["FavoriteJob"],
+        refetchType: "active",
+      });
+      // setFavorite(true)
+
+      Alert.alert(`Save ${job?.jobTitle} Successfully`);
+    },
+    onError: () => {
+      Alert.alert(`Failed to Follow ${job?.jobTitle} `);
+    },
+  });
+  const { mutate: UnfollowJobs } = useMutation({
+    mutationFn: DeleteFavoriteJobs,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["FavoriteJob"],
+        refetchType: "active",
+      });
+      // setFavorite(false)
+      Alert.alert(`Unfollow ${job?.jobTitle} Successfully`);
+    },
+    onError: () => {
+      Alert.alert(`Failed to UnFollow ${job?.jobTitle} `);
+    },
+  });
+
+  const { data: FavoriteJob } = useQuery({
+    queryKey: ["FavoriteJob"],
+    queryFn: ({ signal }) => GetFavoriteJobs({ signal }),
+    staleTime: 5000,
+  });
+  const FavoriteJobs = FavoriteJob?.JobPost;
+  const haveFavorite = FavoriteJobs?.find(
+    (item) => item.id === Number(job?.id)
+  );
+
+  const { data: SeekerApply } = useQuery({
+    queryKey: ["SeekerApply", job?.id],
+    queryFn: ({ signal }) => GetSeekerJobPost({ id: Number(job?.id), signal }),
+    enabled: !!job?.id,
+  });
+
+  const dataSeeker = SeekerApply?.GetSeekers;
+
+  const feedBackUserJob = dataSeeker?.find(
+    (item) => item.id === Number(userId)
+  );
+
+  console.log("quao", haveFavorite);
   useEffect(() => {
     const storeJob = async () => {
       if (job) {
@@ -183,9 +243,29 @@ export default function JobDetail({ route, navigation }: any) {
       },
     });
   };
+
+  const handleSaveJob = async () => {
+    const Auth = await AsyncStorage.getItem("Auth");
+    if (!Auth) {
+      setModalVisibleLogin(true);
+      return;
+    }
+    SaveJobs({
+      data: {
+        jobPostId: Number(job?.id),
+      },
+    });
+  };
   const haveFollow = FollowCompanydata?.find(
     (item) => item.id === Number(detailsCompany?.id)
   );
+  const handleUnFollowJobs = async () => {
+    const Auth = await AsyncStorage.getItem("Auth");
+    if (!Auth) {
+      setModalVisibleLogin(true);
+    }
+    UnfollowJobs({ id: Number(haveFavorite?.id) });
+  };
 
   const handleUnFollow = async () => {
     const Auth = await AsyncStorage.getItem("Auth");
@@ -594,22 +674,31 @@ export default function JobDetail({ route, navigation }: any) {
             gap: 10,
           }}
         >
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={() => setFollow(!follow)}
-          >
-            <Text style={styles.saveButtonText}>SAVE</Text>
-            <View style={{ marginLeft: 10 }}>
-              {/* Nút follow/unfollow */}
-              <TouchableOpacity>
-                <Icon
-                  name={follow ? "bookmark" : "bookmark-border"}
-                  size={30}
-                  color="#FF5A5F"
-                />
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
+          {haveFavorite ? (
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={handleUnFollowJobs}
+            >
+              <Text style={styles.saveButtonText}>SAVED</Text>
+              <View style={{ marginLeft: 10 }}>
+                {/* Nút follow/unfollow */}
+                <TouchableOpacity>
+                  <Icon name={"bookmark"} size={30} color="#FF5A5F" />
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.saveButton} onPress={handleSaveJob}>
+              <Text style={styles.saveButtonText}>SAVE</Text>
+              <View style={{ marginLeft: 10 }}>
+                {/* Nút follow/unfollow */}
+                <TouchableOpacity>
+                  <Icon name={"bookmark-border"} size={30} color="#FF5A5F" />
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          )}
+
           {hasAppliedJobActivity && token ? (
             <TouchableOpacity
               style={styles.applyButtonApplied}
@@ -618,6 +707,14 @@ export default function JobDetail({ route, navigation }: any) {
               <Text style={styles.applyButtonText}>
                 {hasAppliedJobActivity.status}
               </Text>
+              {(feedBackUserJob?.status === "Rejected" ||
+                feedBackUserJob?.status === "Passed") && (
+                <View>
+                  <TouchableOpacity>
+                    <Icon name="comment" size={24} color="black" />
+                  </TouchableOpacity>
+                </View>
+              )}
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
@@ -888,6 +985,9 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     alignItems: "center",
     marginLeft: 8,
+    flexDirection:'row',
+    justifyContent:'center',
+    gap:10
   },
   applyButtonText: {
     color: "white",

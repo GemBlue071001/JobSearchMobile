@@ -1,8 +1,15 @@
 // import { Link } from "expo-router";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
-// import Image1 from './../assets/download.png' 
+import { GetFavoriteJobs } from "../Services/FavoriteJobs/GetFavoriteJobs";
+import { PostFavoriteJobs } from "../Services/FavoriteJobs/PostFavoriteJobs";
+import { queryClient } from "../Services/mainService";
+import { DeleteFavoriteJobs } from "../Services/FavoriteJobs/DeleteFavoriteJobs";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import AuthModal from "./AuthModal";
+// import Image1 from './../assets/download.png'
 interface JobType {
   id: number;
   name: string;
@@ -51,23 +58,105 @@ interface Company {
   imageUrl: string;
 }
 interface props {
-  data: JobPost |undefined;
+  data: JobPost | undefined;
   // img: string | undefined;
   company: Company | undefined;
   navigation: any;
 }
 
-export default function CardJobs({ data,  company, navigation }: props) {
+export default function CardJobs({ data, company, navigation }: props) {
   const jobDetailHref = `/job/${data?.id}`;
   const [follow, setFollow] = useState<boolean>(false);
+  const [modalVisibleLogin, setModalVisibleLogin] = useState<boolean>(false);
+  const formatDateTime = (dateString: string | undefined) => {
+    if (dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+
+    // Return a fallback value if dateString is undefined
+    return "Invalid date";
+  };
+  const { mutate: SaveJobs } = useMutation({
+    mutationFn: PostFavoriteJobs,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["FavoriteJob"],
+        refetchType: "active",
+      });
+      // setFavorite(true)
+
+      Alert.alert(`Save ${data?.jobTitle} Successfully`);
+    },
+    onError: () => {
+      Alert.alert(`Failed to Follow ${data?.jobTitle} `);
+    },
+  });
+  const { mutate: UnfollowJobs } = useMutation({
+    mutationFn: DeleteFavoriteJobs,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["FavoriteJob"],
+        refetchType: "active",
+      });
+      // setFavorite(false)
+      Alert.alert(`Unfollow ${data?.jobTitle} Successfully`);
+    },
+    onError: () => {
+      Alert.alert(`Failed to UnFollow ${data?.jobTitle} `);
+    },
+  });
+  const { data: FavoriteJob } = useQuery({
+    queryKey: ["FavoriteJob"],
+    queryFn: ({ signal }) => GetFavoriteJobs({ signal }),
+    staleTime: 5000,
+  });
+
+  const FavoriteJobs = FavoriteJob?.JobPost;
+  const haveFavorite = FavoriteJobs?.find(
+    (item) => item.id === Number(data?.id)
+  );
+
+  const handleSaveJob = async () => {
+    const Auth = await AsyncStorage.getItem("Auth");
+    if (!Auth) {
+      setModalVisibleLogin(true);
+      return;
+    }
+    SaveJobs({
+      data: {
+        jobPostId: Number(data?.id),
+      },
+    });
+  };
+
+  const handleUnFollowJobs = async () => {
+    const Auth = await AsyncStorage.getItem("Auth");
+    if (!Auth) {
+      setModalVisibleLogin(true);
+    }
+    UnfollowJobs({ id: Number(haveFavorite?.id) });
+  };
+
   return (
     <View style={styles.card}>
+       <AuthModal
+          visible={modalVisibleLogin}
+          onClose={() => setModalVisibleLogin(false)}
+          navigation={navigation}
+        />
       <View style={styles.main}>
         <View style={styles.main1}>
           <View style={styles.main2}>
             <Image
               source={{
-                uri: company && company.imageUrl
+                uri: data && data.imageURL,
               }}
               style={styles.image}
             />
@@ -77,13 +166,23 @@ export default function CardJobs({ data,  company, navigation }: props) {
           </View>
           <View style={{ paddingLeft: 20, marginLeft: "auto" }}>
             {/* Nút follow/unfollow */}
-            <TouchableOpacity onPress={() => setFollow(!follow)}>
-              <Icon
-                name={follow ? "bookmark" : "bookmark-border"}
-                size={30}
-                color="#808080"
-              />
-            </TouchableOpacity>
+            {haveFavorite ? (
+              <TouchableOpacity onPress={handleUnFollowJobs}>
+                <Icon
+                  name={"bookmark"}
+                  size={30}
+                  color="#808080"
+                />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={handleSaveJob}>
+                <Icon
+                  name={"bookmark-border"}
+                  size={30}
+                  color="#808080"
+                />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
         {/* <Link href={{pathname:"/JobDetail",params:{id:data?.id } }} asChild> */}
@@ -99,7 +198,9 @@ export default function CardJobs({ data,  company, navigation }: props) {
         <View style={styles.main3}>
           <View style={styles.location}>
             <Icon name="location-on" size={15} color="#808080" />
-            <Text style={styles.locationtext}>{data?.jobLocationCities.map((item)=>(item))}</Text>
+            <Text style={styles.locationtext}>
+              {data?.jobLocationCities.map((item) => item)}
+            </Text>
           </View>
           <View style={styles.tax}>
             <Icon name="attach-money" size={15} color="#808080" />
@@ -107,7 +208,7 @@ export default function CardJobs({ data,  company, navigation }: props) {
           </View>
           <View style={styles.post}>
             <Icon name="access-time" size={15} color="#808080" />
-            <Text style={styles.posttext}>{data?.postingDate}</Text>
+            <Text style={styles.posttext}>{formatDateTime(data?.postingDate)}</Text>
           </View>
         </View>
         <View style={styles.skillList}>
@@ -129,7 +230,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     flexDirection: "column",
     position: "relative",
-    width:370,
+    width: 370,
     borderColor: "#FF4500",
     borderLeftWidth: 10,
     borderWidth: 1,
@@ -217,7 +318,7 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: "#f0f0f0",
     paddingVertical: 5,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     borderRadius: 5,
     borderWidth: 1,
     borderColor: "#dedede",

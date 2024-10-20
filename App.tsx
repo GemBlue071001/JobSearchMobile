@@ -45,6 +45,10 @@ import RegisterScreen from "./screens/RegisterScreen";
 import EmailVerification from "./screens/EmailVerification";
 import CVTemplate from "./screensModal/CVTemplate";
 import MinimalModal from "./screensModal/MinimalModal";
+import BottomEmployerAccount from "./components/common/BottomEmployerAccount";
+import HeaderSystemEmployer from "./components/common/SystemHeader";
+import SidebarEmployer from "./components/common/SideBarEmployer";
+import Recruitment from "./screens/Employer/Recruitment";
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
 
@@ -56,6 +60,14 @@ export default function App() {
           <Stack.Screen
             name="BottomTabs"
             component={BottomNav}
+            // options={{
+            //   header: () => <MainHeader />,
+            // }}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="tabsEmployer"
+            component={BottomEmployerAccount}
             // options={{
             //   header: () => <MainHeader />,
             // }}
@@ -150,12 +162,12 @@ export default function App() {
             component={VerificationModal}
             options={{ presentation: "modal" }}
           />
-            <Stack.Screen
+          <Stack.Screen
             name="CVTemplate"
             component={CVTemplate}
             options={{ presentation: "modal" }}
           />
-           <Stack.Screen
+          <Stack.Screen
             name="MinimalTemplate"
             component={MinimalModal}
             options={{ presentation: "modal" }}
@@ -176,6 +188,20 @@ export default function App() {
             component={EmailVerification}
             options={{ headerShown: false }}
             // options={{ presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="Employer"
+            component={BottomEmployerAccount}
+            options={{ headerShown: false }}
+            // options={{ presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="Recruitment"
+            component={Recruitment}
+            options={({ navigation }) => ({
+              // header: () => <HeaderSystemEmployer navigation={navigation} />,
+              presentation:'modal'
+            })}
           />
         </Stack.Navigator>
       </NavigationContainer>
@@ -213,12 +239,54 @@ export const ProfileScreenWithDrawer: React.FC<
       )}
     >
       <Drawer.Screen
-        name="tabs"
+        name="BottomTabs"
         options={({ navigation }) => ({
           header: () => getHeaderForType(navigation),
         })}
         component={(props: any) => <Component {...props} {...restProps} />}
       />
+    </Drawer.Navigator>
+  );
+};
+export const ProfileScreenWithDrawerEmployer: React.FC<
+  ProfileScreenWithDrawerProps
+> = ({ component: Component, headerType = true, ...restProps }) => {
+  const Drawer = createDrawerNavigator();
+  const getHeaderForType = (navigation: any) => {
+    switch (headerType) {
+      case "main":
+        return <HeaderSystemEmployer navigation={navigation} />;
+      case "account":
+        return <AccountHeader navigation={navigation} />;
+      // case "custom":
+      //   return <CustomHeader navigation={navigation} />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Drawer.Navigator
+      initialRouteName="Personal"
+      drawerContent={(props: DrawerContentComponentProps) => (
+        <SidebarEmployer {...props} />
+      )}
+    >
+      <Drawer.Screen
+        name="tabsEmployer"
+        options={({ navigation }) => ({
+          header: () => getHeaderForType(navigation),
+        })}
+        component={(props: any) => <Component {...props} {...restProps} />}
+      />
+      {/* <Drawer.Screen
+        name="Recruitment"
+        options={({ navigation }) => ({
+          header: () => <HeaderSystemEmployer navigation={navigation} />,
+          
+        })}
+        component={Recruitment}
+      /> */}
     </Drawer.Navigator>
   );
 };

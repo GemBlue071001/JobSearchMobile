@@ -27,6 +27,46 @@ import { fetchCVs } from "../Services/CVService/GetCV";
 import { DeleteCV } from "../Services/CVService/DeleteCV";
 import { queryClient } from "../Services/mainService";
 import { useFocusEffect } from "@react-navigation/native";
+import { GetFavoriteJobs } from "../Services/FavoriteJobs/GetFavoriteJobs";
+import { PostFavoriteJobs } from "../Services/FavoriteJobs/PostFavoriteJobs";
+import { DeleteFavoriteJobs } from "../Services/FavoriteJobs/DeleteFavoriteJobs";
+interface JobType {
+  id: number;
+  name: string;
+  description: string;
+}
+
+// interface JobLocation {
+//   id: number;
+//   district: string;
+//   city: string;
+//   postCode: string;
+//   state: string;
+//   country: string;
+//   stressAddress: string;
+// }
+
+interface JobPost {
+  id: number;
+  jobTitle: string;
+  jobDescription: string;
+  salary: number;
+  postingDate: string;
+  expiryDate: string;
+  experienceRequired: number;
+  qualificationRequired: string;
+  benefits: string;
+  imageURL: string;
+  isActive: boolean;
+  companyId: number;
+  companyName: string;
+  websiteCompanyURL: string;
+  jobType: JobType; // jobType là đối tượng JobType
+  jobLocationCities: string[];
+  jobLocationAddressDetail: string[];
+  skillSets: string[]; // Array of skill sets, có thể là array rỗng
+}
+
 export default function PersonalScreen({ navigation }: any) {
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [modalVisibleCV, setModalVisibleCV] = useState<boolean>(false);
@@ -37,6 +77,7 @@ export default function PersonalScreen({ navigation }: any) {
   const [selectedTab, setSelectedTab] = useState("Applied");
   const [follow, setFollow] = useState<boolean>(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [everyJob, setEveryJob] = useState<JobPost | undefined>();
   const formatDateTime = (dateString: string | undefined) => {
     if (dateString) {
       const date = new Date(dateString);
@@ -76,7 +117,7 @@ export default function PersonalScreen({ navigation }: any) {
     queryKey: ["UserProfile"],
     queryFn: ({ signal }) =>
       GetUserProfile({ id: Number(UserId), signal: signal }),
-    enabled: !!UserId, 
+    enabled: !!UserId,
   });
   const { data } = useQuery({
     queryKey: ["CVs"],
@@ -97,9 +138,7 @@ export default function PersonalScreen({ navigation }: any) {
   const dataCVS = data?.CVs || [];
   const UserProfileData = UserProfile?.UserProfiles;
   const [fullName, setFullName] = useState<string>(
-    token
-      ? `${UserProfileData?.firstName} ${UserProfileData?.lastName}`
-      : ""
+    token ? `${UserProfileData?.firstName} ${UserProfileData?.lastName}` : ""
   );
   const handleAuth = async () => {
     const Auth = await AsyncStorage.getItem("Auth");
@@ -146,6 +185,64 @@ export default function PersonalScreen({ navigation }: any) {
     staleTime: 5000,
     enabled: !!UserId,
   });
+  const { mutate: SaveJobs } = useMutation({
+    mutationFn: PostFavoriteJobs,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["FavoriteJob"],
+        refetchType: "active",
+      });
+      Alert.alert(`Saved job Successfully`);
+    },
+    onError: () => {
+      Alert.alert(`Failed to Save job`);
+    },
+  });
+
+  const { mutate: UnfollowJobs } = useMutation({
+    mutationFn: DeleteFavoriteJobs,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["FavoriteJob"],
+        refetchType: "active",
+      });
+      Alert.alert(`Unfollowed job Successfully`);
+    },
+    onError: () => {
+      Alert.alert(`Failed to Unfollow job`);
+    },
+  });
+
+  const handleSaveJob = async (id:number|undefined) => {
+    const Auth = await AsyncStorage.getItem("Auth");
+    if (!Auth) {
+      setModalVisibleLogin(true);
+      return;
+    }
+
+    SaveJobs({
+      data: {
+        jobPostId: Number(id),
+      },
+    });
+  };
+
+  const handleUnFollowJobs = async (id:number) => {
+    const Auth = await AsyncStorage.getItem("Auth");
+    if (!Auth) {
+      setModalVisibleLogin(true);
+    }
+    UnfollowJobs({ id: Number(id) });
+  };
+
+  const { data: FavoriteJob } = useQuery({
+    queryKey: ["FavoriteJob"],
+    queryFn: ({ signal }) => GetFavoriteJobs({ signal }),
+    staleTime: 5000,
+  });
+
+  const FavoriteJobs = FavoriteJob?.JobPost;
+
   const JobPostsdata = JobPosts?.JobPosts;
   const Companiesdata = Company?.Companies;
   const JobPostActivitydata = JobPostActivity?.UserJobActivitys;
@@ -169,6 +266,7 @@ export default function PersonalScreen({ navigation }: any) {
     setDeletingId(id);
     deleteCV({ id: id });
   };
+
   const renderContent = () => {
     if (selectedTab === "Applied") {
       return (
@@ -179,24 +277,21 @@ export default function PersonalScreen({ navigation }: any) {
                 const PendingJobApplied = JobPostsdata?.find(
                   (job) => job.id === activity.jobPostId
                 );
-                const companys = Companiesdata?.find(
+                // setEveryJob(PendingJobApplied)
+                const company = Companiesdata?.find(
                   (item) => item.id === PendingJobApplied?.companyId
                 );
+
+                const haveFavorite = FavoriteJobs?.find(
+                  (item) => item.id === Number(PendingJobApplied?.id)
+                );
                 return (
-                  <TouchableOpacity
-                    style={styles.jobCard}
-                    key={activity.id}
-                    onPress={() =>
-                      navigation.navigate("JobDetail", {
-                        id: activity?.jobPostId,
-                      })
-                    }
-                  >
+                  <TouchableOpacity style={styles.jobCard} key={activity.id}>
                     <View style={styles.maincompany}>
                       <View style={styles.maincom1}>
                         <Image
                           source={{
-                            uri: companys && companys.imageUrl,
+                            uri: company?.imageUrl,
                           }}
                           style={styles.image}
                         />
@@ -205,21 +300,40 @@ export default function PersonalScreen({ navigation }: any) {
                           numberOfLines={2}
                           ellipsizeMode="tail"
                         >
-                          {companys?.companyName}
+                          {company?.companyName}
                         </Text>
                       </View>
                       <View style={{ paddingLeft: 20, marginLeft: "auto" }}>
-                        {/* Nút follow/unfollow */}
-                        <TouchableOpacity onPress={() => setFollow(!follow)}>
-                          <Icon
-                            name={follow ? "bookmark" : "bookmark-border"}
-                            size={30}
-                            color="#808080"
-                          />
-                        </TouchableOpacity>
+                        {haveFavorite ? (
+                          <TouchableOpacity
+                            onPress={() => handleUnFollowJobs(haveFavorite.id)}
+                          >
+                            <Icon name={"bookmark"} size={30} color="#808080" />
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity
+                            onPress={() => handleSaveJob(PendingJobApplied?.id)}
+                          >
+                            <Icon
+                              name={"bookmark-border"}
+                              size={30}
+                              color="#808080"
+                            />
+                          </TouchableOpacity>
+                        )}
                       </View>
                     </View>
-                    <Text style={styles.jobTitle}>{activity.jobTitle}</Text>
+
+                    <TouchableOpacity
+                      onPress={() =>
+                        navigation.navigate("JobDetail", {
+                          jobId: activity?.jobPostId,
+                        })
+                      }
+                    >
+                      <Text style={styles.jobTitle}>{activity.jobTitle}</Text>
+                    </TouchableOpacity>
+
                     <View style={styles.iconRow}>
                       <Icon name="place" size={20} color="#777" />
                       {PendingJobApplied?.jobLocationCities.map(
@@ -234,12 +348,14 @@ export default function PersonalScreen({ navigation }: any) {
                         )
                       )}
                     </View>
+
                     <View style={styles.iconRow}>
                       <Icon name="attach-money" size={20} color="#777" />
                       <Text style={styles.jobDetails}>
                         {PendingJobApplied?.salary}
                       </Text>
                     </View>
+
                     <View style={styles.iconRow}>
                       <Icon name="access-time" size={20} color="#777" />
                       <Text style={styles.jobDetails}>
@@ -254,6 +370,7 @@ export default function PersonalScreen({ navigation }: any) {
                         </TouchableOpacity>
                       ))}
                     </View>
+
                     <View
                       style={{
                         marginTop: 10,
@@ -294,16 +411,19 @@ export default function PersonalScreen({ navigation }: any) {
     } else if (selectedTab === "Saved") {
       return (
         <View style={styles.jobdisplay}>
-          {JobPostsdata?.map((job) => {
-            const companys = Companiesdata?.find(
+          {FavoriteJobs?.map((job) => {
+            const company = Companiesdata?.find(
               (item) => item.id === job.companyId
             );
+            const jobsfavorite = JobPostsdata?.find(
+              (item) => item.id === job.id
+            );
+
             return (
               <CardJobs
                 key={job.id}
-                data={job}
-                // img={job.companyImage}
-                company={companys}
+                data={jobsfavorite}
+                company={company}
                 navigation={navigation}
               />
             );
@@ -583,6 +703,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 10,
+    color: "#FF4500",
   },
   iconRow: {
     flexDirection: "row",
