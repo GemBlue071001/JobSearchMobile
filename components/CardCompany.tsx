@@ -79,11 +79,16 @@ interface Company {
 }
 
 interface CardEmployerProps {
-  data: Company;
+  data: Company | undefined;
   navigation: any;
+  jobs: JobPost[] | undefined;
 }
 
-export default function CardCompany({ data, navigation }: CardEmployerProps) {
+export default function CardCompany({
+  data,
+  navigation,
+  jobs,
+}: CardEmployerProps) {
   const [follow, setFollow] = useState<boolean>(false);
   const { data: JobPosts } = useQuery({
     queryKey: ["JobPosts"],
@@ -91,6 +96,10 @@ export default function CardCompany({ data, navigation }: CardEmployerProps) {
     staleTime: 5000,
   });
   const JobPostsdata = JobPosts?.JobPosts;
+
+  const skills = jobs?.map((skill) => skill.skillSets);
+  const flattenedArray = skills?.flat();
+  const uniqueArray = [...new Set(flattenedArray)];
 
   const { mutate } = useMutation({
     mutationFn: PostFollowCompany,
@@ -140,7 +149,7 @@ export default function CardCompany({ data, navigation }: CardEmployerProps) {
   const FollowCompanydata = FollowCompany?.Companies;
 
   const haveFollow = FollowCompanydata?.find(
-    (item) => item.id === Number(data.id)
+    (item) => item.id === Number(data?.id)
   );
   const [modalVisibleLogin, setModalVisibleLogin] = useState<boolean>(false);
   const handleFollow = async () => {
@@ -151,7 +160,7 @@ export default function CardCompany({ data, navigation }: CardEmployerProps) {
     }
     mutate({
       data: {
-        companyId: Number(data.id),
+        companyId: Number(data?.id),
       },
     });
   };
@@ -162,7 +171,7 @@ export default function CardCompany({ data, navigation }: CardEmployerProps) {
     <View style={styles.card}>
       <Image
         source={{
-          uri: data.imageUrl,
+          uri: data?.imageUrl,
         }}
         style={styles.image}
       />
@@ -176,13 +185,13 @@ export default function CardCompany({ data, navigation }: CardEmployerProps) {
           }
         >
           <Text style={{ fontSize: 20, lineHeight: 30 }}>
-            {data.companyName}
+            {data?.companyName}
           </Text>
         </TouchableOpacity>
 
         {/* Skill List */}
         <View style={styles.skillList}>
-          {data.jobPosts.map((job, jobIndex) => {
+          {/* {data?.jobPosts.map((job, jobIndex) => {
             const jobSkill = JobPostsdata?.find((item) => item.id === job.id);
             return jobSkill?.skillSets?.map((tag, tagIndex) => (
               <TouchableOpacity
@@ -192,7 +201,13 @@ export default function CardCompany({ data, navigation }: CardEmployerProps) {
                 <Text style={styles.buttonText}>{tag}</Text>
               </TouchableOpacity>
             ));
-          })}
+          })} */}
+
+          {uniqueArray.map((tag, index) => (
+            <TouchableOpacity key={index} style={styles.button}>
+              <Text style={styles.buttonText}>{tag}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Location */}
@@ -203,7 +218,7 @@ export default function CardCompany({ data, navigation }: CardEmployerProps) {
             numberOfLines={2}
             ellipsizeMode="tail"
           >
-            {data.address} in {data.city}
+            {data?.address} in {data?.city}
           </Text>
         </View>
 
@@ -218,7 +233,7 @@ export default function CardCompany({ data, navigation }: CardEmployerProps) {
           <Icon name="folder" size={20} color="#808080" />
           <View style={styles.tagContainer}>
             <Text style={styles.tagText}>
-              {data.businessStream.businessStreamName},
+              {data?.businessStream.businessStreamName},
             </Text>
           </View>
           <AuthModal

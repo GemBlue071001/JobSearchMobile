@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import {
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -10,10 +11,40 @@ import {
 import CardJobs from "../components/CardJobs";
 import { jobData } from "../mock/JobData";
 // import { companyData } from "../mock/CompanyData";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { fetchCompanies } from "../Services/CompanyService/GetCompanies";
 import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
+import { GetJobSearch } from "../Services/JobSearchService/JobSearchService";
+import { queryClient } from "../Services/mainService";
 const SkillSet = ["PHP", "Front End", "Java", "End", "Javascript"];
+
+interface JobPost {
+  id: number;
+  jobTitle: string;
+  jobDescription: string;
+  salary: number;
+  postingDate: string;
+  expiryDate: string;
+  experienceRequired: number;
+  qualificationRequired: string;
+  benefits: string;
+  imageURL: string;
+  isActive: boolean;
+  companyId: number;
+  companyName: string;
+  websiteCompanyURL: string;
+  jobType: JobType;
+  jobLocationCities: string[];
+  jobLocationAddressDetail: string[];
+  skillSets: string[];
+}
+
+interface JobType {
+  id: number;
+  name: string;
+  description: string;
+}
+
 export default function FormSearch({ navigation }: any) {
   const {
     data: JobPosts,
@@ -37,8 +68,78 @@ export default function FormSearch({ navigation }: any) {
   });
 
   const JobPostsdata = JobPosts?.JobPosts;
+
+  const skills = JobPostsdata?.map((skill) => skill.skillSets);
+  const flattenedArray = skills?.flat();
+  const uniqueArray = [...new Set(flattenedArray)];
   const Companiesdata = Company?.Companies;
   const jobSlice = JobPostsdata?.slice(0, 5);
+
+  const [text, setText] = useState<string>("");
+  const { mutateAsync } = useMutation({
+    mutationFn: GetJobSearch,
+    onSuccess: (data) => {
+      console.log("Search result:", data);
+
+      if (data && data.result && data.result.items.length > 0) {
+        const jobSearchResults = data.result.items;
+        // setJobSearch(data.result.items);
+
+        navigation.navigate("SearchResults", {
+          query: text,
+          location: location,
+          jobSearch: jobSearchResults,
+        });
+      }
+
+      queryClient.invalidateQueries({
+        queryKey: ["JobSearch"],
+        refetchType: "active",
+      });
+
+      // navigate("/it-jobs",{state : text});
+    },
+    onError: () => {
+      Alert.alert("Failed to Search");
+    },
+  });
+
+  const handleOnclick = async (column: string) => {
+    setText(column);
+    interface JobSearchResponse {
+      result: {
+        items: JobPost[];
+      };
+    }
+
+    const searchDataArray = [
+      { companyName: column, pageSize: 9 },
+      { skillSet: column, pageSize: 9 },
+      { location: column, pageSize: 9 },
+      { experience: column, pageSize: 9 },
+      { jobType: column, pageSize: 9 },
+    ];
+
+    for (let i = 0; i < searchDataArray.length; i++) {
+      try {
+        console.log("Searching with:", searchDataArray[i]);
+
+        const result: JobSearchResponse = await mutateAsync({
+          data: searchDataArray[i],
+        });
+        console.log("chan", result.result.items);
+
+        if (result && result.result && result.result.items.length > 0) {
+          // setJobSearch(result.result.items);
+
+          break;
+        }
+      } catch (error) {
+        console.error("Error during job search:", error);
+      }
+    }
+    // navigate("/it-jobs", { state: column });
+  };
   return (
     <ScrollView>
       <View style={styles.main}>
@@ -55,8 +156,12 @@ export default function FormSearch({ navigation }: any) {
           <View style={styles.catgories}>
             <Text style={styles.title}>Top Keyword </Text>
             <View style={styles.skillList}>
-              {SkillSet.map((tag, index) => (
-                <TouchableOpacity key={index} style={styles.button}>
+              {uniqueArray.map((tag, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.button}
+                  onPress={() => handleOnclick(tag)}
+                >
                   <Text style={styles.buttonText}>{tag}</Text>
                 </TouchableOpacity>
               ))}

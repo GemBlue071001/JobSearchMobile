@@ -97,5 +97,9 @@ export const apiLinks = {
     DELETE:`${baseURL}/JobPostActivityComment`,
     PUT: `${baseURL}/JobPostActivityComment`,
     GETBYID:`${baseURL}/JobPostActivityComment/Id`,
+  },
+  jobSearch:{
+    POST:`${baseURL}/JobPosts/search`,
   }
+  
 };

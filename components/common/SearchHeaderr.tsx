@@ -1,14 +1,44 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useRoute, RouteProp, useNavigation } from "@react-navigation/native";
 import LocationModal from "../LocationModal";
 import { StackNavigationProp } from "@react-navigation/stack";
+import { useMutation } from "@tanstack/react-query";
+import { GetJobSearch } from "../../Services/JobSearchService/JobSearchService";
+import { queryClient } from "../../Services/mainService";
 
 type RootStackParamList = {
   Home: undefined;
-  SearchResults: { query: string; location?: string }; 
+  SearchResults: { query: string; location?: string ,jobSearch:JobPost[]}; 
 };
+interface JobPost {
+  id: number;
+  jobTitle: string;
+  jobDescription: string;
+  salary: number;
+  postingDate: string;
+  expiryDate: string;
+  experienceRequired: number;
+  qualificationRequired: string;
+  benefits: string;
+  imageURL: string;
+  isActive: boolean;
+  companyId: number;
+  companyName: string;
+  websiteCompanyURL: string;
+  jobType: JobType;
+  jobLocationCities: string[];
+  jobLocationAddressDetail: string[];
+  skillSets: string[];
+}
+
+interface JobType {
+  id: number;
+  name: string;
+  description: string;
+}
+
 
 // Define kiểu cho route prop
 type SearchScreenRouteProp = RouteProp<RootStackParamList, 'SearchResults'>;
@@ -23,8 +53,68 @@ export default function SeacrHeaderr() {
   // Lấy route với kiểu cụ thể
   const route = useRoute<SearchScreenRouteProp>();
  
-  const query = route.params?.query || ""; // Lấy query từ params nếu có
+  const query = route.params?.query || ""; 
   const filterLocation=route.params?.location || ""
+  const [jobSearch, setJobSearch] = useState<JobPost[]>();
+  const { mutateAsync } = useMutation({
+    mutationFn: GetJobSearch,
+    onSuccess: (data) => {
+      console.log("Search result:", data);
+
+      if (data && data.result && data.result.items.length > 0) {
+        setJobSearch(data.result.items);
+        const jobSearchResults = data.result.items;
+        navigation.navigate("SearchResults", { query: searchQuery ,location:location ,jobSearch: jobSearchResults});
+      }
+
+      queryClient.invalidateQueries({
+        queryKey: ["JobSearch"],
+        refetchType: "active",
+      });
+
+      // navigate("/it-jobs");
+      // navigation.navigate("SearchResults", { query: searchQuery ,location:location });
+    },
+    onError: () => {
+      Alert.alert("Failed to Search");
+    },
+  });
+  const handleNavigate = async () => {
+    // Define the shape of job data returned by the mutation
+    interface JobSearchResponse {
+      result: {
+        items: JobPost[];
+      };
+    }
+
+    const searchDataArray = [
+      { companyName: searchQuery ,pasize:9},
+      { skillSet: searchQuery,pageSize: 9 },
+      { location: searchQuery ,pageSize: 9 },
+      { experience: searchQuery ,pageSize: 9},
+      { jobType: searchQuery ,pageSize: 9},
+    ];
+
+    for (let i = 0; i < searchDataArray.length; i++) {
+      try {
+        console.log("Searching with:", searchDataArray[i]);
+
+        const result: JobSearchResponse = await mutateAsync({
+          data: searchDataArray[i],
+        });
+        console.log("chan", result.result.items);
+
+        if (result && result.result && result.result.items.length > 0) {
+          setJobSearch(result.result.items);
+          break;
+        }
+      } catch (error) {
+        console.error("Error during job search:", error);
+      }
+    }
+  };
+
+
 
   
   useEffect(() => {
@@ -65,6 +155,7 @@ export default function SeacrHeaderr() {
             placeholder="Type keyword to search."
             value={searchQuery}
             onChangeText={setSearchQuery}
+            onSubmitEditing={handleNavigate}
           />
         </View>
         <TouchableOpacity style={styles.iconButton} onPress={handleOpenModal}>

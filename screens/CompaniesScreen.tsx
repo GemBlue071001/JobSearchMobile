@@ -9,14 +9,17 @@ import {
   TouchableOpacity,
   View,
   Text,
+  Alert,
 } from "react-native";
 import { useRef, useState } from "react";
 import RNPickerSelect from "react-native-picker-select";
 import CardCompany from "../components/CardCompany";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
 import { fetchCompanies } from "../Services/CompanyService/GetCompanies";
 import CompanyCard from "../components/CompanyCard";
+import { GetJobSearch } from "../Services/JobSearchService/JobSearchService";
+import { queryClient } from "../Services/mainService";
 
 const SkillSet = ["PHP", "Front End", "Java", "End", "Javascript"];
 const { width } = Dimensions.get("window");
@@ -76,8 +79,12 @@ export default function CompaniesScreen({ navigation }: any) {
   const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const currentIndex = Math.floor(contentOffsetX / width);
-  
-    if (Companiesdata && currentIndex >= Companiesdata.length && flatListRef.current) {
+
+    if (
+      Companiesdata &&
+      currentIndex >= Companiesdata.length &&
+      flatListRef.current
+    ) {
       const scrollToIndex = currentIndex % Companiesdata.length;
       flatListRef.current.scrollToIndex({
         index: scrollToIndex,
@@ -109,8 +116,80 @@ export default function CompaniesScreen({ navigation }: any) {
   });
 
   const Companiesdata = Company?.Companies;
-  const extendedData = Companiesdata ? [...Companiesdata, ...Companiesdata] : [];
 
+  const JobPostsdata = JobPosts?.JobPosts;
+  const extendedData = Companiesdata
+    ? [...Companiesdata, ...Companiesdata]
+    : [];
+  const skills = JobPostsdata?.map((skill) => skill.skillSets);
+  const flattenedArray = skills?.flat();
+  const uniqueArray = [...new Set(flattenedArray)];
+
+  const [text, setText] = useState<string>("");
+  const { mutateAsync } = useMutation({
+    mutationFn: GetJobSearch,
+    onSuccess: (data) => {
+      console.log("Search result:", data);
+
+      if (data && data.result && data.result.items.length > 0) {
+        const jobSearchResults = data.result.items;
+        // setJobSearch(data.result.items);
+
+        navigation.navigate("SearchResults", {
+          query: text,
+          location: location,
+          jobSearch: jobSearchResults,
+        });
+      }
+
+      queryClient.invalidateQueries({
+        queryKey: ["JobSearch"],
+        refetchType: "active",
+      });
+
+      // navigate("/it-jobs",{state : text});
+    },
+    onError: () => {
+      Alert.alert("Failed to Search");
+    },
+  });
+
+  const handleOnclick = async (column: string) => {
+    setText(column);
+    interface JobSearchResponse {
+      result: {
+        items: JobPost[];
+      };
+    }
+
+    const searchDataArray = [
+      { companyName: column, pageSize: 9 },
+      { skillSet: column, pageSize: 9 },
+      { location: column, pageSize: 9 },
+      { experience: column, pageSize: 9 },
+      { jobType: column, pageSize: 9 },
+    ];
+
+    for (let i = 0; i < searchDataArray.length; i++) {
+      try {
+        console.log("Searching with:", searchDataArray[i]);
+
+        const result: JobSearchResponse = await mutateAsync({
+          data: searchDataArray[i],
+        });
+        console.log("chan", result.result.items);
+
+        if (result && result.result && result.result.items.length > 0) {
+          // setJobSearch(result.result.items);
+
+          break;
+        }
+      } catch (error) {
+        console.error("Error during job search:", error);
+      }
+    }
+    // navigate("/it-jobs", { state: column });
+  };
   // Conditional rendering to handle loading and errors
   if (isCompanyLoading || isJobLoading) {
     return <ActivityIndicator size="large" color="#0000ff" />;
@@ -125,8 +204,12 @@ export default function CompaniesScreen({ navigation }: any) {
       <View style={styles.container}>
         <Text style={styles.title}>Top Keywords</Text>
         <View style={styles.skillList}>
-          {SkillSet.map((tag, index) => (
-            <TouchableOpacity key={index} style={styles.button}>
+          {uniqueArray.map((tag, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.button}
+              onPress={() => handleOnclick(tag)}
+            >
               <Text style={styles.buttonText}>{tag}</Text>
             </TouchableOpacity>
           ))}
@@ -191,9 +274,20 @@ export default function CompaniesScreen({ navigation }: any) {
 
         {/* Displaying companies */}
         <View style={styles.companiesDisplay}>
-          {Companiesdata?.map((company) => (
-            <CardCompany key={company.id} data={company} navigation={navigation} />
-          ))}
+          {Companiesdata?.map((company) => {
+            const jobsInCompany = JobPostsdata?.filter(
+              (item) => item.companyId === company.id
+            );
+
+            return (
+              <CardCompany
+                jobs={jobsInCompany}
+                key={company.id}
+                data={company}
+                navigation={navigation}
+              />
+            );
+          })}
         </View>
       </View>
     </ScrollView>
@@ -266,7 +360,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   companiesDisplay: {
-    width:"100%",
+    width: "100%",
     flexDirection: "column",
     marginBottom: 10, // Spacing between company cards
     alignItems: "center",

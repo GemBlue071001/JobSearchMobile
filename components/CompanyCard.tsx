@@ -18,6 +18,7 @@ import { GetFollowCompany } from "../Services/FollowCompany/GetFollowCompany";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import AuthModal from "./AuthModal";
 import { useFocusEffect } from "@react-navigation/native";
+import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
 
 interface BusinessStream {
   id: number;
@@ -81,7 +82,6 @@ export default function CompanyCard({ data, navigation }: CardEmployerProps) {
     const auth = await AsyncStorage.getItem("Auth");
     const token = await AsyncStorage.getItem("token");
     setToken(token);
-  
   };
 
   useFocusEffect(
@@ -99,7 +99,10 @@ export default function CompanyCard({ data, navigation }: CardEmployerProps) {
   const { mutate: followCompany } = useMutation({
     mutationFn: PostFollowCompany,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["FollowCompany"] ,refetchType:'active'});
+      queryClient.invalidateQueries({
+        queryKey: ["FollowCompany"],
+        refetchType: "active",
+      });
       Alert.alert(`Followed ${data?.companyName} successfully`);
     },
     onError: () => {
@@ -110,7 +113,10 @@ export default function CompanyCard({ data, navigation }: CardEmployerProps) {
   const { mutate: unfollowCompany } = useMutation({
     mutationFn: DeleteFollowCompany,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["FollowCompany"] ,refetchType:'active'});
+      queryClient.invalidateQueries({
+        queryKey: ["FollowCompany"],
+        refetchType: "active",
+      });
       Alert.alert(`Unfollowed ${data?.companyName} successfully`);
     },
     onError: () => {
@@ -122,7 +128,7 @@ export default function CompanyCard({ data, navigation }: CardEmployerProps) {
     queryKey: ["FollowCompany"],
     queryFn: GetFollowCompany,
     staleTime: 5000,
-    enabled:!!token
+    enabled: !!token,
   });
 
   const haveFollow = FollowCompany?.Companies?.find(
@@ -133,7 +139,7 @@ export default function CompanyCard({ data, navigation }: CardEmployerProps) {
     const Auth = await AsyncStorage.getItem("Auth");
     if (!Auth) {
       setModalVisibleLogin(true);
-      return; 
+      return;
     }
     followCompany({ data: { companyId: Number(data.id) } });
   };
@@ -149,6 +155,21 @@ export default function CompanyCard({ data, navigation }: CardEmployerProps) {
 
   const { width } = Dimensions.get("window");
 
+  const { data: JobPosts } = useQuery({
+    queryKey: ["JobPosts"],
+    queryFn: ({ signal }) => GetJobPost({ signal: signal }),
+    staleTime: 5000,
+  });
+  const JobPostsdata = JobPosts?.JobPosts;
+
+  const jobsInCompany = JobPostsdata?.filter(
+    (item) => item.companyId === data.id
+  );
+
+  const skills = jobsInCompany?.map((skill) => skill.skillSets);
+  const flattenedArray = skills?.flat();
+  const uniqueArray = [...new Set(flattenedArray)];
+console.log('realy',uniqueArray)
   return (
     <View style={styles.main}>
       <Image source={{ uri: data.imageUrl }} style={styles.logo} />
@@ -212,17 +233,22 @@ export default function CompanyCard({ data, navigation }: CardEmployerProps) {
 
         <View style={styles.skill}>
           <View style={styles.skillList}>
-            {data.jobPosts.map((job) =>
+            {/* {data.jobPosts.map((job) =>
               job.skillSets.map((tag, index) => (
                 <TouchableOpacity key={index} style={styles.button}>
                   <Text style={styles.buttonText}>{tag}</Text>
                 </TouchableOpacity>
               ))
-            )}
+            )} */}
+            {uniqueArray.map((tag, index) => (
+              <TouchableOpacity key={index} style={styles.button}>
+                <Text style={styles.buttonText}>{tag}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
           <View>
-            {haveFollow  && token? (
+            {haveFollow && token ? (
               <TouchableOpacity onPress={handleUnFollow}>
                 <Icon name="bookmark" size={30} color="#808080" />
               </TouchableOpacity>

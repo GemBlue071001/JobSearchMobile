@@ -6,31 +6,122 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Animated, // Import Animated
+  Animated,
+  Alert, // Import Animated
 } from "react-native";
 import CardJobs from "../components/CardJobs";
 import { jobData } from "../mock/JobData";
 // import { companyData } from "../mock/CompanyData";
 import CardCompany from "../components/CardCompany";
 import LocationModal from "../components/LocationModal";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { GetJobPost } from "../Services/JobsPost/GetJobPosts";
 import { fetchCompanies } from "../Services/CompanyService/GetCompanies";
+import { GetJobSearch } from "../Services/JobSearchService/JobSearchService";
+import { queryClient } from "../Services/mainService";
 
 type RootStackParamList = {
   Home: undefined;
-  SearchResults: { query: string; location?: string }; // Nhận thêm tham số 'location'
+  SearchResults: { query: string; location?: string; jobSearch: JobPost[] };
 };
+
+interface JobPost {
+  id: number;
+  jobTitle: string;
+  jobDescription: string;
+  salary: number;
+  postingDate: string;
+  expiryDate: string;
+  experienceRequired: number;
+  qualificationRequired: string;
+  benefits: string;
+  imageURL: string;
+  isActive: boolean;
+  companyId: number;
+  companyName: string;
+  websiteCompanyURL: string;
+  jobType: JobType;
+  jobLocationCities: string[];
+  jobLocationAddressDetail: string[];
+  skillSets: string[];
+}
+
+interface JobType {
+  id: number;
+  name: string;
+  description: string;
+}
 
 type SearchResultsRouteProp = RouteProp<RootStackParamList, "SearchResults">;
 
 export default function SearchResults({ navigation }: any) {
   const [selectedTab, setSelectedTab] = useState("All");
+
   const route = useRoute<SearchResultsRouteProp>();
   // const { query } = route.params;
-  const { query, location } = route.params || { query: "", location: "" }; 
+  const { query, location, jobSearch } = route.params || {
+    query: "",
+    location: "",
+    jobSearch: [],
+  };
 
- 
+  const [jobSearch1, setJobSearch] = useState<JobPost[]>(jobSearch);
+
+  console.log("thiet khong", jobSearch1);
+  const { mutateAsync } = useMutation({
+    mutationFn: GetJobSearch,
+    onSuccess: (data) => {
+      console.log("Search result:", data);
+
+      if (data && data.result && data.result.items.length > 0) {
+        setJobSearch(data.result.items);
+      }
+
+      queryClient.invalidateQueries({
+        queryKey: ["JobSearch"],
+        refetchType: "active",
+      });
+
+      // navigate("/it-jobs");
+    },
+    onError: () => {
+      Alert.alert("Failed to Search");
+    },
+  });
+  const handleNavigate = async () => {
+    // Define the shape of job data returned by the mutation
+    interface JobSearchResponse {
+      result: {
+        items: JobPost[];
+      };
+    }
+
+    const searchDataArray = [
+      { companyName: query, pageSize: 9 },
+      { skillSet: query, pageSize: 9 },
+      { location: query, pageSize: 9 },
+      { experience: query, pageSize: 9 },
+      { jobType: query, pageSize: 9 },
+    ];
+
+    for (let i = 0; i < searchDataArray.length; i++) {
+      try {
+        console.log("Searching with:", searchDataArray[i]);
+
+        const result: JobSearchResponse = await mutateAsync({
+          data: searchDataArray[i],
+        });
+        console.log("chan", result.result.items);
+
+        if (result && result.result && result.result.items.length > 0) {
+          setJobSearch(result.result.items);
+          break;
+        }
+      } catch (error) {
+        console.error("Error during job search:", error);
+      }
+    }
+  };
 
   const [fadeAnim] = useState(new Animated.Value(1)); // Tạo giá trị animated cho opacity
   const {
@@ -57,7 +148,11 @@ export default function SearchResults({ navigation }: any) {
   const JobPostsdata = JobPosts?.JobPosts;
   const Companiesdata = Company?.Companies;
   const jobSlice = JobPostsdata?.slice(0, 5);
-  const handleTabChange = (tab:any) => {
+
+  const companyhavJobs = Companiesdata?.filter((company) =>
+    jobSearch1.some((job) => company.id === job.companyId)
+  );
+  const handleTabChange = (tab: any) => {
     // Animation fade out trước khi thay đổi tab
     Animated.timing(fadeAnim, {
       toValue: 0, // Làm mờ nội dung hiện tại
@@ -84,17 +179,18 @@ export default function SearchResults({ navigation }: any) {
             Jobs
           </Text>
           <Text style={{ fontSize: 15, lineHeight: 22.5 }}>
-            Have {jobData.length} jobs
+            Have {jobSearch1?.length} jobs
           </Text>
           <View style={styles.jobdisplay}>
-            {jobSlice?.map((job) => {
+            {jobSearch1?.map((job) => {
               const company = Companiesdata?.find(
                 (item) => item.id === job.companyId
               );
+              const jobs = JobPostsdata?.find((item) => item.id === job.id);
               return (
                 <CardJobs
                   key={job.id}
-                  data={job}
+                  data={jobs}
                   // img={job.companyImage}
                   company={company}
                   navigation={navigation}
@@ -106,16 +202,26 @@ export default function SearchResults({ navigation }: any) {
             Companies
           </Text>
           <Text style={{ fontSize: 15, lineHeight: 22.5 }}>
-            Have {Companiesdata?.length} companies
+            Have {companyhavJobs?.length} companies
           </Text>
           <View style={styles.companiesisplay}>
-            {Companiesdata?.map((company) => (
-              <CardCompany
-                key={company.id}
-                data={company}
-                navigation={navigation}
-              />
-            ))}
+            {companyhavJobs?.map((company) => {
+              // const companydata = Companiesdata?.find(
+              //   (item) => item.id ===job.companyId
+              // );
+              const jobsInCompany = JobPostsdata?.filter(
+                (item) => item.companyId === company.id
+              );
+
+              return (
+                <CardCompany
+                jobs={jobsInCompany}
+                  key={company.id}
+                  data={company}
+                  navigation={navigation}
+                />
+              );
+            })}
           </View>
         </View>
       );
@@ -126,10 +232,10 @@ export default function SearchResults({ navigation }: any) {
             Jobs
           </Text>
           <Text style={{ fontSize: 15, lineHeight: 22.5 }}>
-            Have {jobData.length} jobs
+            Have {jobSearch1?.length} jobs
           </Text>
           <View style={styles.jobdisplay}>
-            {jobSlice?.map((job) => {
+            {jobSearch1?.map((job) => {
               const company = Companiesdata?.find(
                 (item) => item.id === job.companyId
               );
@@ -153,16 +259,23 @@ export default function SearchResults({ navigation }: any) {
             Companies
           </Text>
           <Text style={{ fontSize: 15, lineHeight: 22.5 }}>
-            Have {Companiesdata?.length} companies
+            Have {companyhavJobs?.length} companies
           </Text>
           <View style={styles.companiesisplay}>
-            {Companiesdata?.map((company) => (
-              <CardCompany
-                key={company.id}
-                data={company}
-                navigation={navigation}
-              />
-            ))}
+            {companyhavJobs?.map((company) => {
+              const jobsInCompany = JobPostsdata?.filter(
+                (item) => item.companyId === company.id
+              );
+
+              return (
+                <CardCompany
+                  jobs={jobsInCompany}
+                  key={company.id}
+                  data={company}
+                  navigation={navigation}
+                />
+              );
+            })}
           </View>
         </View>
       );
@@ -216,7 +329,9 @@ export default function SearchResults({ navigation }: any) {
         </TouchableOpacity>
       </View>
       <ScrollView>
-        <Animated.View style={{ opacity: fadeAnim }}>{renderContent()}</Animated.View>
+        <Animated.View style={{ opacity: fadeAnim }}>
+          {renderContent()}
+        </Animated.View>
       </ScrollView>
     </View>
   );
