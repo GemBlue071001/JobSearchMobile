@@ -274,6 +274,10 @@ export default function JobDetail({ route, navigation }: any) {
     }
     Unfollow({ id: Number(haveFollow?.id) });
   };
+  const expiryDate = job?.expiryDate ? new Date(job?.expiryDate) : null;
+  const today = new Date();
+
+  const isExpired = expiryDate ? expiryDate < today : undefined;
 
   const renderContent = () => {
     if (selectedTab === "Job Details") {
@@ -596,9 +600,13 @@ export default function JobDetail({ route, navigation }: any) {
               <View style={styles.post}>
                 <Icon name="access-time" size={15} color="#808080" />
                 <Text style={styles.posttext}>
-                  {" "}
+                  {"From "}
                   {job?.postingDate
                     ? formatDate(job.postingDate)
+                    : "No Date Available"}
+                  {" To "}
+                  {job?.expiryDate
+                    ? formatDate(job.expiryDate)
                     : "No Date Available"}
                 </Text>
               </View>
@@ -715,6 +723,10 @@ export default function JobDetail({ route, navigation }: any) {
                   </TouchableOpacity>
                 </View>
               )}
+            </TouchableOpacity>
+          ) : isExpired ? (
+            <TouchableOpacity style={styles.applyButtonApplied}>
+              <Text style={styles.applyButtonText}> application deadline</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
@@ -985,9 +997,9 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     alignItems: "center",
     marginLeft: 8,
-    flexDirection:'row',
-    justifyContent:'center',
-    gap:10
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 10,
   },
   applyButtonText: {
     color: "white",
